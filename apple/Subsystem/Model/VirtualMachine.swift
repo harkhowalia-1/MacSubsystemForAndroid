@@ -34,10 +34,10 @@ final class VirtualMachine: @unchecked Sendable {
 
         var errorDescription: String? {
             switch self {
-            case .qemuMissing: return "QEMU is missing from this copy of \(AppConfig.displayName). Reinstall it (or, for development, run `brew install qemu`)."
-            case .firmwareMissing: return "The UEFI firmware (edk2-aarch64-code.fd) is missing."
-            case .portInUse(let port): return "Port \(port) on this Mac is already in use, so Android's ADB can't be reached. Quit the program using it (often another Android emulator) and try again."
-            case .launch(let detail): return "Android couldn't start: \(detail)"
+            case .qemuMissing: return L10n.format("QEMU is missing from this copy of %@. Reinstall it (or, for development, run `brew install qemu`).", AppConfig.displayName)
+            case .firmwareMissing: return L10n.text("The UEFI firmware (edk2-aarch64-code.fd) is missing.")
+            case .portInUse(let port): return L10n.format("Port %@ on this Mac is already in use, so Android's ADB can't be reached. Quit the program using it (often another Android emulator) and try again.", String(port))
+            case .launch(let detail): return L10n.format("Android couldn't start: %@", detail)
             }
         }
     }

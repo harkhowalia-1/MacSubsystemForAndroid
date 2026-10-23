@@ -26,12 +26,12 @@ enum ADBError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .connect(let detail): return "Couldn't connect to Android: \(detail)"
-        case .closed: return "The connection to Android closed."
-        case .timeout(let what): return "Android didn't answer in time (\(what))."
-        case .protocolError(let detail): return "Unexpected answer from Android (\(detail))."
-        case .unauthorized: return "Android hasn't allowed this Mac to connect yet."
-        case .serviceUnavailable(let service): return "Android refused \(service)."
+        case .connect(let detail): return L10n.format("Couldn't connect to Android: %@", detail)
+        case .closed: return L10n.text("The connection to Android closed.")
+        case .timeout(let what): return L10n.format("Android didn't answer in time (%@).", what)
+        case .protocolError(let detail): return L10n.format("Unexpected answer from Android (%@).", detail)
+        case .unauthorized: return L10n.text("Android hasn't allowed this Mac to connect yet.")
+        case .serviceUnavailable(let service): return L10n.format("Android refused %@.", service)
         case .command(let output): return output
         }
     }
@@ -99,7 +99,7 @@ final class ADBConnection: @unchecked Sendable {
             do {
                 message = try readMessage()
             } catch ADBError.timeout {
-                throw sentPublicKey ? ADBError.unauthorized : ADBError.timeout("handshake")
+                throw sentPublicKey ? ADBError.unauthorized : ADBError.timeout(L10n.text("handshake"))
             }
             switch Command(rawValue: message.command) {
             case .cnxn:
@@ -122,9 +122,10 @@ final class ADBConnection: @unchecked Sendable {
                     throw ADBError.unauthorized
                 }
             case .stls:
-                throw ADBError.protocolError("TLS is not supported on this port")
+                throw ADBError.protocolError(L10n.text("TLS is not supported on this port"))
             default:
-                throw ADBError.protocolError(String(format: "command 0x%08x during handshake", message.command))
+                throw ADBError.protocolError(L10n.format("command %@ during handshake",
+                                                         String(format: "0x%08x", message.command)))
             }
         }
     }
@@ -166,7 +167,7 @@ final class ADBConnection: @unchecked Sendable {
         guard stream.waitUntilOpen(timeout: timeout) else {
             forget(localID)
             if stream.isClosed { throw ADBError.serviceUnavailable(service) }
-            throw ADBError.timeout("opening \(service)")
+            throw ADBError.timeout(L10n.format("opening %@", service))
         }
         return stream
     }
@@ -293,9 +294,9 @@ final class ADBConnection: @unchecked Sendable {
             header.withUnsafeBytes { UInt32(littleEndian: $0.loadUnaligned(fromByteOffset: i * 4, as: UInt32.self)) }
         }
         let command = word(0)
-        guard word(5) == command ^ 0xffff_ffff else { throw ADBError.protocolError("bad magic") }
+        guard word(5) == command ^ 0xffff_ffff else { throw ADBError.protocolError(L10n.text("bad magic")) }
         let length = Int(word(3))
-        guard length <= 16 * 1024 * 1024 else { throw ADBError.protocolError("oversized message") }
+        guard length <= 16 * 1024 * 1024 else { throw ADBError.protocolError(L10n.text("oversized message")) }
         let payload = length > 0 ? try readExactly(length) : Data()
         return Message(command: command, arg0: word(1), arg1: word(2), payload: payload)
     }
@@ -316,7 +317,7 @@ final class ADBConnection: @unchecked Sendable {
             } else if errno == EINTR {
                 continue
             } else if errno == EAGAIN || errno == EWOULDBLOCK {
-                throw ADBError.timeout("read")
+                throw ADBError.timeout(L10n.text("read"))
             } else {
                 throw ADBError.closed
             }
@@ -344,7 +345,7 @@ final class ADBConnection: @unchecked Sendable {
         address.sin_port = port.bigEndian
         guard inet_pton(AF_INET, host, &address.sin_addr) == 1 else {
             Darwin.close(socket)
-            throw ADBError.connect("bad address \(host)")
+            throw ADBError.connect(L10n.format("bad address %@", host))
         }
 
         // Non-blocking connect so a dead port fails fast.
@@ -368,7 +369,7 @@ final class ADBConnection: @unchecked Sendable {
             getsockopt(socket, SOL_SOCKET, SO_ERROR, &error, &length)
             if ready <= 0 || error != 0 {
                 Darwin.close(socket)
-                throw ADBError.connect(ready <= 0 ? "timed out" : String(cString: strerror(error)))
+                throw ADBError.connect(ready <= 0 ? L10n.text("timed out") : String(cString: strerror(error)))
             }
         }
         _ = fcntl(socket, F_SETFL, flags & ~O_NONBLOCK)

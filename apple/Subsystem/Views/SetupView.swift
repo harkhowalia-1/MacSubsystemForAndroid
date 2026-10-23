@@ -16,7 +16,7 @@ struct SetupView: View {
                 .resizable()
                 .frame(width: 96, height: 96)
             VStack(spacing: 8) {
-                Text("Set up \(AppConfig.displayName)")
+                Text(L10n.format("Set up %@", AppConfig.displayName))
                     .font(.largeTitle.weight(.semibold))
                 Text("Android apps on your Mac: every Android app in its own window, with its own icon in Launchpad and the Dock.")
                     .font(.title3)
@@ -26,9 +26,9 @@ struct SetupView: View {
             }
 
             VStack(alignment: .leading, spacing: 10) {
-                Bullet(symbol: "arrow.down.circle", text: "Downloads Android 17 (LineageOS 24, no Google apps), about 1.5 GB.")
-                Bullet(symbol: "bolt", text: "Android runs in a lightweight virtual machine on Apple silicon, at close to native speed.")
-                Bullet(symbol: "lock", text: "Everything stays on this Mac. Android only talks to the Mac through 127.0.0.1.")
+                Bullet(symbol: "arrow.down.circle", text: L10n.text("Downloads Android 17 (LineageOS 24, no Google apps), about 1.5 GB."))
+                Bullet(symbol: "bolt", text: L10n.text("Android runs in a lightweight virtual machine on Apple silicon, at close to native speed."))
+                Bullet(symbol: "lock", text: L10n.text("Everything stays on this Mac. Android only talks to the Mac through 127.0.0.1."))
             }
             .frame(maxWidth: 520, alignment: .leading)
 

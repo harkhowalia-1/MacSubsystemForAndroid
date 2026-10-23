@@ -180,12 +180,12 @@ struct AndroidImage: Codable, Equatable, Sendable {
 
         var errorDescription: String? {
             switch self {
-            case .noPackage: return "This file doesn't contain a LineageOS virtual machine (a .utm folder with config.plist)."
-            case .noDisks: return "The virtual machine has no disks."
-            case .overlay(let output): return "Couldn't prepare Android's disks: \(output)"
-            case .noRelease: return "No Android image is available to download yet. Pick a UTM-VM-lineage zip instead (see the guide)."
-            case .checksum: return "The download is damaged (its checksum doesn't match). Try again."
-            case .download(let detail): return "The download failed: \(detail)"
+            case .noPackage: return L10n.text("This file doesn't contain a LineageOS virtual machine (a .utm folder with config.plist).")
+            case .noDisks: return L10n.text("The virtual machine has no disks.")
+            case .overlay(let output): return L10n.format("Couldn't prepare Android's disks: %@", output)
+            case .noRelease: return L10n.text("No Android image is available to download yet. Pick a UTM-VM-lineage zip instead (see the guide).")
+            case .checksum: return L10n.text("The download is damaged (its checksum doesn't match). Try again.")
+            case .download(let detail): return L10n.format("The download failed: %@", detail)
             }
         }
     }

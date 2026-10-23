@@ -48,6 +48,9 @@ targets:
       - path: Subsystem
       - path: Shared
       - path: Resources/Assets.xcassets
+      - path: Resources/zh-Hans.lproj
+        type: folder
+        buildPhase: resources
       # Liquid Glass icon (Icon Composer); actool also derives the older macOS icon from it.
       - path: Resources/AppIcon.icon
         type: file
@@ -61,6 +64,8 @@ targets:
       properties:
         CFBundleDisplayName: $(APP_NAME)
         CFBundleName: $(APP_NAME)
+        CFBundleDevelopmentRegion: en
+        CFBundleLocalizations: [en, zh-Hans]
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSApplicationCategoryType: public.app-category.utilities

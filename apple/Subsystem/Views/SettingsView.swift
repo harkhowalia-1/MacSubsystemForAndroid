@@ -12,14 +12,14 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var title: String {
         switch self {
-        case .system: return "System"
-        case .performance: return "Performance"
-        case .apps: return "Apps"
-        case .privacy: return "Privacy"
-        case .files: return "Files"
-        case .storage: return "Storage"
-        case .advanced: return "Advanced"
-        case .about: return "About"
+        case .system: return L10n.text("System")
+        case .performance: return L10n.text("Performance")
+        case .apps: return L10n.text("Apps")
+        case .privacy: return L10n.text("Privacy")
+        case .files: return L10n.text("Files")
+        case .storage: return L10n.text("Storage")
+        case .advanced: return L10n.text("Advanced")
+        case .about: return L10n.text("About")
         }
     }
     var symbol: String {
@@ -106,7 +106,7 @@ struct SystemSettingsView: View {
                 })) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Always ready")
-                        Text("Start with your Mac and keep Android running in the background, so Android apps open instantly. \(AppConfig.displayName) stays in the menu bar.")
+                        Text(L10n.format("Start with your Mac and keep Android running in the background, so Android apps open instantly. %@ stays in the menu bar.", AppConfig.displayName))
                             .font(.callout)
                             .foregroundStyle(.secondary)
                     }
@@ -131,10 +131,10 @@ struct SystemSettingsView: View {
                         .foregroundStyle(.secondary)
                 }
                 if settings.resources == .asNeeded {
-                    Stepper("Turn off after \(settings.idleMinutes) minutes without open apps",
+                    Stepper(L10n.format("Turn off after %@ minutes without open apps", String(settings.idleMinutes)),
                             value: $settings.idleMinutes, in: 1...60)
                 }
-                Toggle("Start \(AppConfig.displayName) when you log in", isOn: $settings.startAtLogin)
+                Toggle(L10n.format("Start %@ when you log in", AppConfig.displayName), isOn: $settings.startAtLogin)
             } header: {
                 Text("Resources")
             }
@@ -161,7 +161,7 @@ struct StatusCard: View {
                 .foregroundStyle(color)
                 .frame(width: 40, height: 40)
             VStack(alignment: .leading, spacing: 4) {
-                Text("Android is \(subsystem.state.title.lowercased())")
+                Text(L10n.format("Android is %@", subsystem.state.title.localizedLowercase))
                     .font(.headline)
                 if let detail = subsystem.state.detail {
                     Text(detail).foregroundStyle(.secondary).textSelection(.enabled)
@@ -224,7 +224,8 @@ struct PerformanceSettingsView: View {
                 Text("Mode")
             } footer: {
                 if let level = subsystem.performanceLevel {
-                    Text("Right now: \(level.title). App windows stream at up to \(level.maxFPS) fps; windows opened from now on use it.")
+                    Text(L10n.format("Right now: %@. App windows stream at up to %@ fps; windows opened from now on use it.",
+                                     level.title, String(level.maxFPS)))
                 } else {
                     Text("The mode applies whenever Android is running.")
                 }
@@ -240,7 +241,7 @@ struct PerformanceSettingsView: View {
                 }
                 LabeledContent("Memory for Android") {
                     Picker("", selection: $settings.memoryMB) {
-                        ForEach(settings.memoryChoices, id: \.self) { Text("\($0 / 1024) GB").tag($0) }
+                        ForEach(settings.memoryChoices, id: \.self) { Text(L10n.format("%@ GB", String($0 / 1024))).tag($0) }
                     }
                     .labelsHidden()
                     .frame(width: 100)
@@ -254,7 +255,7 @@ struct PerformanceSettingsView: View {
 
             Section {
                 Toggle("Use game controllers in Android games", isOn: $settings.controllers)
-                LabeledContent("Connected controllers", value: controllerCount == 0 ? "None" : "\(controllerCount)")
+                LabeledContent("Connected controllers", value: controllerCount == 0 ? L10n.text("None") : String(controllerCount))
                 Text("Pair a controller in System Settings › Bluetooth (Xbox, PlayStation, Switch Pro and MFi controllers work). It appears in the Android app whose window is in front.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
@@ -327,9 +328,9 @@ struct AppsSettingsView: View {
                 ContentUnavailableView {
                     Label("No Android apps yet", systemImage: "square.grid.2x2")
                 } description: {
-                    Text(subsystem.state == .running
-                         ? "Install an APK, or get F-Droid to browse free and open-source apps."
-                         : "Start Android to see its apps, or install an APK (Android starts automatically).")
+                    Text(L10n.text(subsystem.state == .running
+                                   ? "Install an APK, or get F-Droid to browse free and open-source apps."
+                                   : "Start Android to see its apps, or install an APK (Android starts automatically)."))
                 } actions: {
                     Button("Install APK…") { install() }
                     Button("Get F-Droid") { subsystem.installFDroid() }
@@ -353,7 +354,7 @@ struct AppsSettingsView: View {
             }
             Divider()
             HStack {
-                Text("\(subsystem.apps.count) apps")
+                Text(L10n.format("%@ apps", String(subsystem.apps.count)))
                     .foregroundStyle(.secondary)
                 Spacer()
                 Button("Get F-Droid") { subsystem.installFDroid() }
@@ -375,8 +376,8 @@ struct AppsSettingsView: View {
         } isTargeted: { dropTargeted = $0 }
         .sheet(item: $privacyApp) { AppPrivacySheet(app: $0) }
         .navigationTitle("Apps")
-        .navigationSubtitle("Each app is also in Launchpad and Applications › \(AppConfig.launcherFolderName)")
-        .confirmationDialog("Uninstall \(confirmRemove?.label ?? "")?",
+        .navigationSubtitle(L10n.format("Each app is also in Launchpad and Applications › %@", AppConfig.launcherFolderName))
+        .confirmationDialog(L10n.format("Uninstall %@?", confirmRemove?.label ?? ""),
                             isPresented: Binding(get: { confirmRemove != nil }, set: { if !$0 { confirmRemove = nil } }),
                             presenting: confirmRemove) { app in
             Button("Uninstall", role: .destructive) { subsystem.uninstall(app) }
@@ -492,12 +493,12 @@ struct StorageSettingsView: View {
             Section {
                 UsageBar(usage: janitor.usage)
                     .padding(.vertical, 6)
-                row("Android image", janitor.usage.image, .accentColor)
-                row("Android apps and data", janitor.usage.androidData, .green)
-                row("App launchers", janitor.usage.launchers, .orange)
-                row("Downloads, logs and other", janitor.usage.other, .secondary)
+                row(L10n.text("Android image"), janitor.usage.image, .accentColor)
+                row(L10n.text("Android apps and data"), janitor.usage.androidData, .green)
+                row(L10n.text("App launchers"), janitor.usage.launchers, .orange)
+                row(L10n.text("Downloads, logs and other"), janitor.usage.other, .secondary)
             } header: {
-                Text("Space used: \(format(janitor.usage.total))")
+                Text(L10n.format("Space used: %@", format(janitor.usage.total)))
             }
 
             Section {
@@ -506,7 +507,7 @@ struct StorageSettingsView: View {
                     .font(.callout)
                     .foregroundStyle(.secondary)
                 HStack {
-                    Button(janitor.isWorking ? "Cleaning Up…" : "Clean Up Now") { janitor.cleanNow() }
+                    Button(janitor.isWorking ? L10n.text("Cleaning Up…") : L10n.text("Clean Up Now")) { janitor.cleanNow() }
                         .disabled(janitor.isWorking || subsystem.busy != nil)
                     if janitor.isWorking { ProgressView().controlSize(.small) }
                     Spacer()
@@ -590,7 +591,7 @@ struct AdvancedSettingsView: View {
                             }
                         }
                     }
-                    Text("Run `adb connect \(adbAddress)` in Terminal, or use Android Studio. ADB only listens on this Mac. The first time, Android asks to allow this computer only if the image requires it.")
+                    Text(L10n.format("Run `adb connect %@` in Terminal, or use Android Studio. ADB only listens on this Mac. The first time, Android asks to allow this computer only if the image requires it.", adbAddress))
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
@@ -622,9 +623,9 @@ struct AdvancedSettingsView: View {
             }
 
             Section {
-                LabeledContent("Image", value: subsystem.image?.displayName ?? "None")
+                LabeledContent("Image", value: subsystem.image?.displayName ?? L10n.text("None"))
                 if let version = subsystem.androidVersion {
-                    LabeledContent("Running", value: version)
+                    LabeledContent("Running version", value: version)
                 }
                 HStack {
                     Button("Download Latest Android…") { confirmUpdate = true }
@@ -678,7 +679,7 @@ struct AboutView: View {
                         .resizable()
                         .frame(width: 96, height: 96)
                     Text(AppConfig.displayName).font(.title.weight(.semibold))
-                    Text("Version \(AppConfig.version)").foregroundStyle(.secondary)
+                    Text(L10n.format("Version %@", AppConfig.version)).foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
@@ -690,7 +691,7 @@ struct AboutView: View {
                 } else if let image = subsystem.image {
                     LabeledContent("Android image", value: image.displayName)
                 }
-                LabeledContent("Mac app", value: "Version \(AppConfig.version)")
+                LabeledContent("Mac app", value: L10n.format("Version %@", AppConfig.version))
             }
             Section {
                 Link("Source code (GPLv3)", destination: AppConfig.repositoryURL)

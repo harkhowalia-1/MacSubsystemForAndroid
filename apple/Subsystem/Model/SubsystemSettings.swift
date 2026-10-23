@@ -25,16 +25,16 @@ final class SubsystemSettings: ObservableObject {
         var id: String { rawValue }
         var title: String {
             switch self {
-            case .automatic: return "Automatic"
-            case .asNeeded: return "As needed"
-            case .continuous: return "Continuous"
+            case .automatic: return L10n.text("Automatic")
+            case .asNeeded: return L10n.text("As needed")
+            case .continuous: return L10n.text("Continuous")
             }
         }
         var detail: String {
             switch self {
-            case .automatic: return "Follows the performance mode: Smart, Standard and Performance keep Android ready (Smart lets it idle at the lowest level). Power Saver turns it off as soon as no app is open."
-            case .asNeeded: return "Android starts when you open an Android app and turns off a few minutes after you close the last one. Apps take longer to open the first time."
-            case .continuous: return "Android stays ready in the background, so apps open quickly. Uses more memory and battery. Power Saver still turns it off when no app is open."
+            case .automatic: return L10n.text("Smart, Standard and Performance keep Android ready. Smart drops to Power Saver when idle. Power Saver turns Android off when no app is open.")
+            case .asNeeded: return L10n.text("Android starts when you open an Android app and turns off after the minutes you set. The first open takes longer.")
+            case .continuous: return L10n.text("Android stays ready in the background, so apps open quickly. Uses more memory and battery. Power Saver still turns it off when no app is open.")
             }
         }
     }

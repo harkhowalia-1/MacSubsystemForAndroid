@@ -69,17 +69,14 @@ struct MenuBarView: View {
         Divider()
         Button("Settings…") { SettingsWindowController.shared.show() }
             .keyboardShortcut(",")
-        Button("Quit \(AppConfig.displayName)") { NSApp.terminate(nil) }
+        Button(L10n.format("Quit %@", AppConfig.displayName)) { NSApp.terminate(nil) }
             .keyboardShortcut("q")
     }
 
     private var statusLine: String {
-        var line = "Android: \(subsystem.state.title)"
+        var line = L10n.format("Android: %@", subsystem.state.title)
         if case .running = subsystem.state {
-            line += " · \(settings.performanceMode.title)"
-            if settings.performanceMode == .smart, let level = subsystem.performanceLevel {
-                line += " (\(level.title.lowercased()))"
-            }
+            line += L10n.format(" · %@", settings.performanceMode.title)
         }
         return line
     }

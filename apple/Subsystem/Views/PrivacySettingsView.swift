@@ -65,20 +65,22 @@ struct PrivacyCategoryView: View {
                 Section {
                     Toggle("Let Android use this Mac's microphone", isOn: $settings.microphone)
                 } footer: {
-                    Text(subsystem.state == .running
-                         ? "Android has no microphone when this is off, whatever apps are allowed. A change takes effect the next time Android starts."
-                         : "Android has no microphone when this is off, whatever apps are allowed.")
+                    Text(L10n.text(subsystem.state == .running
+                                   ? "Android has no microphone when this is off, whatever apps are allowed. A change takes effect the next time Android starts."
+                                   : "Android has no microphone when this is off, whatever apps are allowed."))
                 }
             }
             if let hardware {
                 Section {
-                    Label(hardware, systemImage: "info.circle").foregroundStyle(.secondary)
+                    Label(L10n.text(hardware), systemImage: "info.circle").foregroundStyle(.secondary)
                 }
             }
             Section {
                 let apps = privacy.apps(in: category, from: subsystem.apps)
                 if apps.isEmpty {
-                    Text(privacy.loading ? "Checking apps…" : "No apps have asked to \(category.detail).")
+                    Text(privacy.loading
+                         ? L10n.text("Checking apps…")
+                         : L10n.format("No apps have asked to %@.", category.detail))
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(apps) { app in
@@ -86,7 +88,7 @@ struct PrivacyCategoryView: View {
                     }
                 }
             } header: {
-                Text("Apps that asked to \(category.detail)")
+                Text(L10n.format("Apps that asked to %@", category.detail))
             } footer: {
                 if category == .location {
                     Text("Turning access on allows it while the app is in use. Turning it off also removes access in the background.")
@@ -102,7 +104,7 @@ struct PrivacyCategoryView: View {
         switch category {
         case .camera: return "Android doesn't have a camera on this Mac yet, so apps can't take photos even when allowed."
         case .location: return "Android has no location source on this Mac, so apps can't find where you are even when allowed."
-        case .phone, .callLogs, .messages: return "Android has no phone service on this Mac."
+        case .phone, .callLogs, .messages: return "Android on this Mac has no cellular service, so it can't make calls and has no call log or text messages."
         case .bodySensors, .activity: return "Android has no body or motion sensors on this Mac."
         default: return nil
         }
@@ -130,7 +132,9 @@ struct AppPrivacySheet: View {
             Form {
                 let categories = privacy.categories(for: app)
                 if categories.isEmpty {
-                    Text(privacy.loading ? "Checking…" : "\(app.label) hasn't asked for access to any private data.")
+                    Text(privacy.loading
+                         ? L10n.text("Checking…")
+                         : L10n.format("%@ hasn't asked for access to any private data.", app.label))
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(categories) { category in
@@ -173,11 +177,11 @@ struct PrivacyToggleRow: View {
             }
             if access?.locked == true {
                 Image(systemName: "lock.fill").foregroundStyle(.secondary)
-                    .help("Android manages this permission for \(app.label).")
+                    .help(L10n.format("Android locks this permission for %@, so it can't be changed here.", app.label))
             }
             Toggle(isOn: Binding(get: { access?.allowed ?? false },
                                  set: { privacy.set($0, for: app, in: category) })) {
-                Text("\(category.title) for \(app.label)")
+                Text(L10n.format("%@ for %@", category.title, app.label))
             }
             .labelsHidden()
             .toggleStyle(.switch)

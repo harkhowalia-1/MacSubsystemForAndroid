@@ -135,10 +135,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func confirmImageInstall(_ url: URL) {
         let alert = NSAlert()
-        alert.messageText = "Replace Android with \(url.lastPathComponent)?"
-        alert.informativeText = "All Android apps and their data will be erased."
-        alert.addButton(withTitle: "Replace")
-        alert.addButton(withTitle: "Cancel")
+        alert.messageText = L10n.format("Replace Android with %@?", url.lastPathComponent)
+        alert.informativeText = L10n.text("All Android apps and their data will be erased.")
+        alert.addButton(withTitle: L10n.text("Replace"))
+        alert.addButton(withTitle: L10n.text("Cancel"))
         alert.alertStyle = .warning
         NSApp.activate()
         if alert.runModal() == .alertFirstButtonReturn {
@@ -229,8 +229,8 @@ enum FilePicker {
     @MainActor
     static func pickPackages() -> [URL] {
         let panel = NSOpenPanel()
-        panel.title = "Install Android Apps"
-        panel.prompt = "Install"
+        panel.title = L10n.text("Install Android Apps")
+        panel.prompt = L10n.text("Install")
         panel.allowsMultipleSelection = true
         panel.allowedContentTypes = packageTypes
         NSApp.activate()
@@ -240,9 +240,9 @@ enum FilePicker {
     @MainActor
     static func pickImage() -> URL? {
         let panel = NSOpenPanel()
-        panel.title = "Choose an Android Image"
-        panel.message = "Choose a UTM-VM-lineage-…-virtio_arm64only.zip file or a .utm folder."
-        panel.prompt = "Use Image"
+        panel.title = L10n.text("Choose an Android Image")
+        panel.message = L10n.text("Choose a UTM-VM-lineage-…-virtio_arm64only.zip file or a .utm folder.")
+        panel.prompt = L10n.text("Use Image")
         panel.canChooseDirectories = true
         panel.allowedContentTypes = [.zip, UTType(filenameExtension: "utm") ?? .folder, .folder]
         NSApp.activate()
@@ -252,8 +252,8 @@ enum FilePicker {
     @MainActor
     static func pickFiles() -> [URL] {
         let panel = NSOpenPanel()
-        panel.title = "Send Files to Android"
-        panel.prompt = "Send"
+        panel.title = L10n.text("Send Files to Android")
+        panel.prompt = L10n.text("Send")
         panel.allowsMultipleSelection = true
         NSApp.activate()
         return panel.runModal() == .OK ? panel.urls : []

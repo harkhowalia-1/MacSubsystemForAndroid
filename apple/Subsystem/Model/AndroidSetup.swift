@@ -36,10 +36,10 @@ enum AndroidSetup {
         case bridgeInstall(String)
         var errorDescription: String? {
             switch self {
-            case .bootTimeout: return "Android didn't finish starting."
-            case .tradeInMode: return "Android's ADB is in trade-in mode, so this Mac can't set it up. Reset Android in Settings and try again."
-            case .bridgeMissing: return "bridge.apk is missing from this copy of \(AppConfig.displayName)."
-            case .bridgeInstall(let output): return "Couldn't install the bridge app: \(output)"
+            case .bootTimeout: return L10n.text("Android didn't finish starting.")
+            case .tradeInMode: return L10n.text("Android's ADB is in trade-in mode, so this Mac can't set it up. Reset Android in Settings and try again.")
+            case .bridgeMissing: return L10n.format("bridge.apk is missing from this copy of %@.", AppConfig.displayName)
+            case .bridgeInstall(let output): return L10n.format("Couldn't install the bridge app: %@", output)
             }
         }
     }

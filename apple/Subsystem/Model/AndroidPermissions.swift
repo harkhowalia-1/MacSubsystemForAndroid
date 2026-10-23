@@ -23,21 +23,21 @@ enum PrivacyCategory: String, CaseIterable, Identifiable, Hashable {
 
     var title: String {
         switch self {
-        case .camera: return "Camera"
-        case .microphone: return "Microphone"
-        case .location: return "Location"
-        case .contacts: return "Contacts"
-        case .calendars: return "Calendars"
-        case .photos: return "Photos & Videos"
-        case .music: return "Music & Audio"
-        case .files: return "Files"
-        case .notifications: return "Notifications"
-        case .phone: return "Phone"
-        case .callLogs: return "Call Logs"
-        case .messages: return "Messages"
-        case .nearby: return "Nearby Devices"
-        case .bodySensors: return "Body Sensors"
-        case .activity: return "Physical Activity"
+        case .camera: return L10n.text("Camera")
+        case .microphone: return L10n.text("Microphone")
+        case .location: return L10n.text("Location")
+        case .contacts: return L10n.text("Contacts")
+        case .calendars: return L10n.text("Calendars")
+        case .photos: return L10n.text("Photos & Videos")
+        case .music: return L10n.text("Music & Audio")
+        case .files: return L10n.text("Files")
+        case .notifications: return L10n.text("Notifications")
+        case .phone: return L10n.text("Phone")
+        case .callLogs: return L10n.text("Call Logs")
+        case .messages: return L10n.text("Messages")
+        case .nearby: return L10n.text("Nearby Devices")
+        case .bodySensors: return L10n.text("Body Sensors")
+        case .activity: return L10n.text("Physical Activity")
         }
     }
 
@@ -64,21 +64,21 @@ enum PrivacyCategory: String, CaseIterable, Identifiable, Hashable {
     /// The app wants to …
     var detail: String {
         switch self {
-        case .camera: return "take photos and record video"
-        case .microphone: return "record audio"
-        case .location: return "know where you are"
-        case .contacts: return "read and change your contacts"
-        case .calendars: return "read and change your calendars"
-        case .photos: return "see photos and videos"
-        case .music: return "see music and other audio"
-        case .files: return "read and change shared files"
-        case .notifications: return "send notifications"
-        case .phone: return "make and manage calls"
-        case .callLogs: return "read and change the call history"
-        case .messages: return "send and read text messages"
-        case .nearby: return "find and connect to nearby devices"
-        case .bodySensors: return "read heart rate and other body sensors"
-        case .activity: return "know when you walk, run or cycle"
+        case .camera: return L10n.text("take photos and record video")
+        case .microphone: return L10n.text("record audio")
+        case .location: return L10n.text("know where you are")
+        case .contacts: return L10n.text("read and change your contacts")
+        case .calendars: return L10n.text("read and change your calendars")
+        case .photos: return L10n.text("see photos and videos")
+        case .music: return L10n.text("see music and other audio")
+        case .files: return L10n.text("read and change shared files")
+        case .notifications: return L10n.text("send notifications")
+        case .phone: return L10n.text("make and manage calls")
+        case .callLogs: return L10n.text("read and change the call history")
+        case .messages: return L10n.text("send and read text messages")
+        case .nearby: return L10n.text("find and connect to nearby devices")
+        case .bodySensors: return L10n.text("read heart rate and other body sensors")
+        case .activity: return L10n.text("know when you walk, run or cycle")
         }
     }
 
@@ -211,7 +211,9 @@ final class PrivacyCenter: ObservableObject {
                 center.changing.remove(key)
                 if let text { center.permissions[app.package] = Self.parsePermissions(text) }
                 if let problem {
-                    center.failure = "Android didn't change \(category.title) for \(app.label): \(problem)"
+                    let detail = problem == "no answer" ? L10n.text("no answer") : problem
+                    center.failure = L10n.format("Android didn't change %1$@ for %2$@: %3$@",
+                                                 category.title, app.label, detail)
                 }
             }
         }

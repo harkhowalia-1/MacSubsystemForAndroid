@@ -26,12 +26,12 @@ final class Subsystem: ObservableObject {
 
         var title: String {
             switch self {
-            case .notInstalled: return "Not set up"
-            case .off: return "Off"
-            case .starting: return "Starting"
-            case .running: return "Running"
-            case .stopping: return "Turning off"
-            case .failed: return "Stopped with an error"
+            case .notInstalled: return L10n.text("Not set up")
+            case .off: return L10n.text("Off")
+            case .starting: return L10n.text("Starting")
+            case .running: return L10n.text("Running")
+            case .stopping: return L10n.text("Turning off")
+            case .failed: return L10n.text("Stopped with an error")
             }
         }
 
@@ -97,10 +97,10 @@ final class Subsystem: ObservableObject {
         }
         let now = LaunchSettings(settings)
         var changes: [String] = []
-        if now.memoryMB != launched.memoryMB { changes.append("memory") }
-        if now.cpuCount != launched.cpuCount { changes.append("processor cores") }
-        if now.microphone != launched.microphone { changes.append("microphone") }
-        if now.showAndroidScreen != launched.showAndroidScreen { changes.append("Android screen window") }
+        if now.memoryMB != launched.memoryMB { changes.append(L10n.text("memory")) }
+        if now.cpuCount != launched.cpuCount { changes.append(L10n.text("processor cores")) }
+        if now.microphone != launched.microphone { changes.append(L10n.text("microphone")) }
+        if now.showAndroidScreen != launched.showAndroidScreen { changes.append(L10n.text("Android screen window")) }
         return changes
     }
 
@@ -177,14 +177,15 @@ final class Subsystem: ObservableObject {
         switch state {
         case .off, .failed: break
         case .notInstalled:
-            notice = Notice(title: "Android isn't set up yet", message: "Download Android first in \(AppConfig.displayName) settings.")
+            notice = Notice(title: L10n.text("Android isn't set up yet"),
+                            message: L10n.format("Download Android first in %@ settings.", AppConfig.displayName))
             return
         default: return
         }
         guard let image else { return }
         if StorageJanitor.shared.isCompacting {
             // Android's disks are being compacted; start as soon as that finishes.
-            setState(.starting("Finishing a storage clean-up…"))
+            setState(.starting(L10n.text("Finishing a storage clean-up…")))
             StorageJanitor.shared.whenIdle {
                 let subsystem = Subsystem.shared
                 guard case .starting = subsystem.state, subsystem.vm == nil else { return }
@@ -195,7 +196,7 @@ final class Subsystem: ObservableObject {
         }
         stopRequested = false
         lastActivity = Date()
-        setState(.starting("Starting Android…"))
+        setState(.starting(L10n.text("Starting Android…")))
         // Before touching the disks: a QEMU left behind still holds them.
         VirtualMachine.killStaleInstance()
 
@@ -263,7 +264,7 @@ final class Subsystem: ObservableObject {
                     // trade-in mode during this boot, and adbd follows after a restart.
                     guard !restartedFromTradeInMode else { throw AndroidSetup.Failure.tradeInMode }
                     restartedFromTradeInMode = true
-                    progress("Restarting Android…")
+                    progress(L10n.text("Restarting Android…"))
                     AndroidSetup.restartFromTradeInMode(candidate)
                     candidate.close()
                     Thread.sleep(forTimeInterval: 5)
@@ -277,21 +278,21 @@ final class Subsystem: ObservableObject {
                 throw AndroidSetup.Failure.tradeInMode
             } catch {
                 candidate.close()
-                if Date() > deadline { throw ADBError.timeout("Android didn't start") }
+                if Date() > deadline { throw ADBError.timeout(L10n.text("Android didn't start")) }
                 Thread.sleep(forTimeInterval: 1)
             }
         }
         guard let adb = connection else { throw ADBError.closed }
-        progress("Starting Android…")
+        progress(L10n.text("Starting Android…"))
         try AndroidSetup.waitForBoot(adb)
         if firstBoot {
-            progress("Setting up Android for the first time…")
+            progress(L10n.text("Setting up Android for the first time…"))
             AndroidSetup.firstBoot(adb)
         }
         AndroidSetup.applyIdentity(adb)
         AndroidSetup.disableLockScreen(adb)
         AndroidSetup.allowInstallingApps(adb)
-        progress("Preparing apps…")
+        progress(L10n.text("Preparing apps…"))
         try AndroidSetup.ensureBridge(adb)
         try AndroidSetup.ensureScrcpyServer(adb)
         return (adb, AndroidSetup.versionDescription(adb))
@@ -350,7 +351,7 @@ final class Subsystem: ObservableObject {
                 self.setState(.off)
                 self.start()
                 if case .starting = self.state {
-                    self.setState(.starting("In the Android window, tick “Always allow from this computer” and click Allow."))
+                    self.setState(.starting(L10n.text("In the Android window, tick “Always allow from this computer” and click Allow.")))
                 }
             }
             return
@@ -428,7 +429,8 @@ final class Subsystem: ObservableObject {
             publishStatus()
         } else {
             let reason = Self.lastQEMUError().map { "\n\($0)" } ?? ""
-            setState(.failed("Android stopped unexpectedly (QEMU exit code \(code)).\(reason)\nThe full log is in Settings › Advanced › Show Log."))
+            setState(.failed(L10n.format("Android stopped unexpectedly (QEMU exit code %@).%@\nThe full log is in Settings › Advanced › Show Log.",
+                                         String(code), reason)))
         }
         stopRequested = false
         StorageJanitor.shared.androidStopped()
@@ -518,33 +520,38 @@ final class Subsystem: ObservableObject {
     func install(_ urls: [URL]) {
         let packages = urls.filter(PackageInstaller.canInstall)
         guard !packages.isEmpty else {
-            notice = Notice(title: "Can't install this file", message: "Choose an .apk, .apks, .apkm or .xapk file.")
+            notice = Notice(title: L10n.text("Can't install this file"),
+                            message: L10n.text("Choose an .apk, .apks, .apkm or .xapk file."))
             return
         }
         guard case .running = state, let adb else {
             pendingInstalls += packages
-            busy = Busy(message: "Starting Android to install \(packages.count == 1 ? packages[0].lastPathComponent : "\(packages.count) apps")…")
+            let what = packages.count == 1
+                ? packages[0].lastPathComponent
+                : L10n.format("%@ apps", String(packages.count))
+            busy = Busy(message: L10n.format("Starting Android to install %@…", what))
             if state == .notInstalled {
                 busy = nil
                 pendingInstalls = []
-                notice = Notice(title: "Android isn't set up yet", message: "Finish setting up \(AppConfig.displayName), then install the app again.")
+                notice = Notice(title: L10n.text("Android isn't set up yet"),
+                                message: L10n.format("Finish setting up %@, then install the app again.", AppConfig.displayName))
             } else {
                 start()
             }
             return
         }
         let before = Set(apps.map(\.package))
-        busy = Busy(message: "Installing \(packages[0].lastPathComponent)…", progress: 0)
+        busy = Busy(message: L10n.format("Installing %@…", packages[0].lastPathComponent), progress: 0)
         work.async {
             var failures: [String] = []
             for (index, url) in packages.enumerated() {
                 Task { @MainActor in
-                    Subsystem.shared.busy = Busy(message: "Installing \(url.lastPathComponent)…", progress: 0)
+                    Subsystem.shared.busy = Busy(message: L10n.format("Installing %@…", url.lastPathComponent), progress: 0)
                 }
                 do {
                     try PackageInstaller.install(url, adb: adb) { fraction in
                         Task { @MainActor in
-                            Subsystem.shared.busy = Busy(message: "Installing \(url.lastPathComponent)…",
+                            Subsystem.shared.busy = Busy(message: L10n.format("Installing %@…", url.lastPathComponent),
                                                          progress: (Double(index) + fraction) / Double(packages.count))
                         }
                     }
@@ -560,7 +567,7 @@ final class Subsystem: ObservableObject {
                 if let catalog { subsystem.apps = catalog.apps }
                 let added = (catalog?.apps ?? []).filter { !before.contains($0.package) }
                 if !failures.isEmpty {
-                    subsystem.notice = Notice(title: "Some apps weren't installed", message: failures.joined(separator: "\n\n"))
+                    subsystem.notice = Notice(title: L10n.text("Some apps weren't installed"), message: failures.joined(separator: "\n\n"))
                 }
                 for app in added { subsystem.announceInstalled(app) }
                 // Open the app straight away when exactly one was installed, like double-clicking an installer.
@@ -571,18 +578,18 @@ final class Subsystem: ObservableObject {
 
     private func announceInstalled(_ app: AndroidApp) {
         let content = UNMutableNotificationContent()
-        content.title = "\(app.label) installed"
-        content.body = "Find it in Launchpad, Spotlight and Applications › \(AppConfig.launcherFolderName)."
+        content.title = L10n.format("%@ installed", app.label)
+        content.body = L10n.format("Find it in Launchpad, Spotlight and Applications › %@.", AppConfig.launcherFolderName)
         content.userInfo = ["package": app.package]
         UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: "installed-\(app.package)", content: content, trigger: nil))
     }
 
     func uninstall(_ app: AndroidApp) {
         guard let adb else {
-            notice = Notice(title: "Android is off", message: "Start Android to uninstall apps.")
+            notice = Notice(title: L10n.text("Android is off"), message: L10n.text("Start Android to uninstall apps."))
             return
         }
-        busy = Busy(message: "Removing \(app.label)…")
+        busy = Busy(message: L10n.format("Removing %@…", app.label))
         work.async {
             let result = Result { try PackageInstaller.uninstall(app.package, adb: adb) }
             let catalog = try? AppCatalog.sync(adb)
@@ -591,7 +598,7 @@ final class Subsystem: ObservableObject {
                 subsystem.busy = nil
                 if let catalog { subsystem.apps = catalog.apps }
                 if case .failure(let error) = result {
-                    subsystem.notice = Notice(title: "Couldn't remove \(app.label)", message: error.localizedDescription)
+                    subsystem.notice = Notice(title: L10n.format("Couldn't remove %@", app.label), message: error.localizedDescription)
                 }
             }
         }
@@ -607,18 +614,18 @@ final class Subsystem: ObservableObject {
 
     /// F-Droid, the open-source app store, offered during setup and in Settings › Apps.
     func installFDroid() {
-        busy = Busy(message: "Downloading F-Droid…", progress: 0)
+        busy = Busy(message: L10n.text("Downloading F-Droid…"), progress: 0)
         Task {
             do {
                 let target = SubsystemPaths.downloads.appendingPathComponent("F-Droid.apk")
                 let file = try await Downloader.download(URL(string: "https://f-droid.org/F-Droid.apk")!, to: target) { fraction, _ in
-                    Task { @MainActor in Subsystem.shared.busy = Busy(message: "Downloading F-Droid…", progress: fraction) }
+                    Task { @MainActor in Subsystem.shared.busy = Busy(message: L10n.text("Downloading F-Droid…"), progress: fraction) }
                 }
                 busy = nil
                 install([file])
             } catch {
                 busy = nil
-                notice = Notice(title: "Couldn't download F-Droid", message: error.localizedDescription)
+                notice = Notice(title: L10n.text("Couldn't download F-Droid"), message: error.localizedDescription)
             }
         }
     }
@@ -626,10 +633,10 @@ final class Subsystem: ObservableObject {
     /// Copy files into Android's Download folder.
     func sendFiles(_ urls: [URL]) {
         guard let adb else {
-            notice = Notice(title: "Android is off", message: "Start Android to send files to it.")
+            notice = Notice(title: L10n.text("Android is off"), message: L10n.text("Start Android to send files to it."))
             return
         }
-        busy = Busy(message: "Sending files to Android…", progress: 0)
+        busy = Busy(message: L10n.text("Sending files to Android…"), progress: 0)
         work.async {
             var errors: [String] = []
             for (index, url) in urls.enumerated() {
@@ -652,8 +659,9 @@ final class Subsystem: ObservableObject {
                 let subsystem = Subsystem.shared
                 subsystem.busy = nil
                 subsystem.notice = errors.isEmpty
-                    ? Notice(title: "Files sent", message: "They're in Android's Download folder (open Files).")
-                    : Notice(title: "Some files weren't sent", message: errors.joined(separator: "\n"))
+                    ? Notice(title: L10n.text("Files sent"),
+                             message: L10n.text("They're in Android's Download folder (open Files)."))
+                    : Notice(title: L10n.text("Some files weren't sent"), message: errors.joined(separator: "\n"))
             }
         }
     }
@@ -661,7 +669,7 @@ final class Subsystem: ObservableObject {
     // MARK: Android image
 
     func downloadImage() {
-        busy = Busy(message: "Finding the latest Android…")
+        busy = Busy(message: L10n.text("Finding the latest Android…"))
         Task {
             do {
                 let release = try await AndroidImage.latestRelease()
@@ -669,12 +677,14 @@ final class Subsystem: ObservableObject {
                 let total = release.size
                 let file = try await Downloader.download(release.url, to: target) { fraction, written in
                     let message = total > 0
-                        ? "Downloading Android… \(ByteCountFormatter.string(fromByteCount: written, countStyle: .file)) of \(ByteCountFormatter.string(fromByteCount: total, countStyle: .file))"
-                        : "Downloading Android…"
+                        ? L10n.format("Downloading Android… %@ of %@",
+                                      ByteCountFormatter.string(fromByteCount: written, countStyle: .file),
+                                      ByteCountFormatter.string(fromByteCount: total, countStyle: .file))
+                        : L10n.text("Downloading Android…")
                     Task { @MainActor in Subsystem.shared.busy = Busy(message: message, progress: fraction) }
                 }
                 if let expected = release.sha256 {
-                    busy = Busy(message: "Checking the download…")
+                    busy = Busy(message: L10n.text("Checking the download…"))
                     let actual = try await Task.detached { try AndroidImage.sha256(of: file) }.value
                     guard actual == expected else {
                         try? FileManager.default.removeItem(at: file)
@@ -684,7 +694,7 @@ final class Subsystem: ObservableObject {
                 installImage(from: file, deleteAfterwards: true)
             } catch {
                 busy = nil
-                notice = Notice(title: "Couldn't download Android", message: error.localizedDescription)
+                notice = Notice(title: L10n.text("Couldn't download Android"), message: error.localizedDescription)
             }
         }
     }
@@ -692,7 +702,7 @@ final class Subsystem: ObservableObject {
     /// Install an image the person picked (UTM-VM-lineage zip or .utm folder).
     func installImage(from url: URL, deleteAfterwards: Bool = false) {
         if state.isActive { stop() }
-        busy = Busy(message: "Unpacking Android…", progress: 0)
+        busy = Busy(message: L10n.text("Unpacking Android…"), progress: 0)
         Task {
             while self.state.isActive { try? await Task.sleep(for: .milliseconds(300)) }
             let result = await Task.detached(priority: .userInitiated) {
@@ -700,7 +710,7 @@ final class Subsystem: ObservableObject {
                 defer { if scoped { url.stopAccessingSecurityScopedResource() } }
                 return Result {
                     try AndroidImage.install(from: url) { fraction in
-                        Task { @MainActor in Subsystem.shared.busy = Busy(message: "Unpacking Android…", progress: fraction) }
+                        Task { @MainActor in Subsystem.shared.busy = Busy(message: L10n.text("Unpacking Android…"), progress: fraction) }
                     }
                 }
             }.value
@@ -716,7 +726,7 @@ final class Subsystem: ObservableObject {
                 setState(.off)
                 start()
             case .failure(let error):
-                notice = Notice(title: "Couldn't install Android", message: error.localizedDescription)
+                notice = Notice(title: L10n.text("Couldn't install Android"), message: error.localizedDescription)
             }
         }
     }
@@ -732,7 +742,8 @@ final class Subsystem: ObservableObject {
             AppStore.save([])
             try? FileManager.default.removeItem(at: SubsystemPaths.icons)
             apps = []
-            notice = Notice(title: "Android was reset", message: "All Android apps and their data were removed.")
+            notice = Notice(title: L10n.text("Android was reset"),
+                            message: L10n.text("All Android apps and their data were removed."))
             if wasActive || settings.resources == .continuous { start() }
         }
     }

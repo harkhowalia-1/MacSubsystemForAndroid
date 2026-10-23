@@ -24,8 +24,8 @@ enum LauncherGenerator {
         case signing(String)
         var errorDescription: String? {
             switch self {
-            case .hostMissing: return "The app window host is missing from \(AppConfig.displayName). Reinstall it."
-            case .signing(let output): return "Signing the launcher failed: \(output)"
+            case .hostMissing: return L10n.format("The app window host is missing from %@. Reinstall it.", AppConfig.displayName)
+            case .signing(let output): return L10n.format("Signing the launcher failed: %@", output)
             }
         }
     }

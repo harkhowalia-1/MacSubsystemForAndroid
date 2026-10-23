@@ -19,10 +19,12 @@ enum ZipExtractor {
 
         var errorDescription: String? {
             switch self {
-            case .notAZip: return "This file isn't a zip archive."
-            case .unsupportedMethod(let name, let method): return "\(name) uses an unsupported compression method (\(method)). Re-zip it with standard compression."
-            case .corrupt(let detail): return "The zip archive is damaged (\(detail))."
-            case .unsafePath(let name): return "The archive contains an unsafe path: \(name)"
+            case .notAZip: return L10n.text("This file isn't a zip archive.")
+            case .unsupportedMethod(let name, let method):
+                return L10n.format("%@ uses an unsupported compression method (%@). Re-zip it with standard compression.",
+                                   name, String(method))
+            case .corrupt(let detail): return L10n.format("The zip archive is damaged (%@).", detail)
+            case .unsafePath(let name): return L10n.format("The archive contains an unsafe path: %@", name)
             }
         }
     }
@@ -78,11 +80,11 @@ enum ZipExtractor {
 
         // ZIP64: a locator sits 20 bytes before the classic record.
         if count == 0xFFFF || directorySize == 0xFFFF_FFFF || directoryOffset == 0xFFFF_FFFF {
-            guard eocd >= 20, tail.zipLE32(eocd - 20) == 0x0706_4b50 else { throw Failure.corrupt("missing ZIP64 locator") }
+            guard eocd >= 20, tail.zipLE32(eocd - 20) == 0x0706_4b50 else { throw Failure.corrupt(L10n.text("missing ZIP64 locator")) }
             let zip64Offset = tail.zipLE64(eocd - 20 + 8)
             try handle.seek(toOffset: zip64Offset)
             guard let record = try handle.read(upToCount: 56), record.count == 56, record.zipLE32(0) == 0x0606_4b50 else {
-                throw Failure.corrupt("bad ZIP64 record")
+                throw Failure.corrupt(L10n.text("bad ZIP64 record"))
             }
             count = record.zipLE64(32)
             directorySize = record.zipLE64(40)
@@ -91,13 +93,13 @@ enum ZipExtractor {
 
         try handle.seek(toOffset: directoryOffset)
         guard let directory = try handle.read(upToCount: Int(directorySize)), directory.count == Int(directorySize) else {
-            throw Failure.corrupt("truncated central directory")
+            throw Failure.corrupt(L10n.text("truncated central directory"))
         }
 
         var entries: [Entry] = []
         var p = 0
         for _ in 0..<count {
-            guard p + 46 <= directory.count, directory.zipLE32(p) == 0x0201_4b50 else { throw Failure.corrupt("bad directory entry") }
+            guard p + 46 <= directory.count, directory.zipLE32(p) == 0x0201_4b50 else { throw Failure.corrupt(L10n.text("bad directory entry")) }
             let flags = directory.zipLE16(p + 8)
             let method = directory.zipLE16(p + 10)
             var compressed = UInt64(directory.zipLE32(p + 20))
@@ -107,7 +109,7 @@ enum ZipExtractor {
             let commentLength = Int(directory.zipLE16(p + 32))
             var offset = UInt64(directory.zipLE32(p + 42))
             let nameStart = p + 46
-            guard nameStart + nameLength + extraLength <= directory.count else { throw Failure.corrupt("bad name") }
+            guard nameStart + nameLength + extraLength <= directory.count else { throw Failure.corrupt(L10n.text("bad name")) }
             let nameData = directory.subdata(in: nameStart..<(nameStart + nameLength))
             // Bit 11 = UTF-8 names; older tools use CP437, which is ASCII for typical file names.
             let name = String(data: nameData, encoding: (flags & 0x800) != 0 ? .utf8 : .isoLatin1) ?? ""
@@ -139,7 +141,7 @@ enum ZipExtractor {
     private static func extract(_ entry: Entry, from handle: FileHandle, to target: URL) throws {
         try handle.seek(toOffset: entry.localHeaderOffset)
         guard let header = try handle.read(upToCount: 30), header.count == 30, header.zipLE32(0) == 0x0403_4b50 else {
-            throw Failure.corrupt("bad local header for \(entry.name)")
+            throw Failure.corrupt(L10n.format("bad local header for %@", entry.name))
         }
         let dataStart = entry.localHeaderOffset + 30 + UInt64(header.zipLE16(26)) + UInt64(header.zipLE16(28))
         try handle.seek(toOffset: dataStart)
@@ -154,7 +156,7 @@ enum ZipExtractor {
             while remaining > 0 {
                 try autoreleasepool {
                     let data = try handle.read(upToCount: Int(min(UInt64(chunk), remaining))) ?? Data()
-                    guard !data.isEmpty else { throw Failure.corrupt("unexpected end of \(entry.name)") }
+                    guard !data.isEmpty else { throw Failure.corrupt(L10n.format("unexpected end of %@", entry.name)) }
                     try out.write(contentsOf: data)
                     remaining -= UInt64(data.count)
                 }
@@ -167,7 +169,8 @@ enum ZipExtractor {
 
         let size = try out.offset()
         if size != entry.uncompressedSize {
-            throw Failure.corrupt("\(entry.name) is \(size) bytes, expected \(entry.uncompressedSize)")
+            throw Failure.corrupt(L10n.format("%@ is %@ bytes, expected %@",
+                                              entry.name, String(size), String(entry.uncompressedSize)))
         }
     }
 
@@ -175,7 +178,7 @@ enum ZipExtractor {
         let stream = UnsafeMutablePointer<compression_stream>.allocate(capacity: 1)
         defer { stream.deallocate() }
         guard compression_stream_init(stream, COMPRESSION_STREAM_DECODE, COMPRESSION_ZLIB) == COMPRESSION_STATUS_OK else {
-            throw Failure.corrupt("could not start decompression")
+            throw Failure.corrupt(L10n.text("could not start decompression"))
         }
         defer { compression_stream_destroy(stream) }
 
@@ -218,10 +221,10 @@ enum ZipExtractor {
             case COMPRESSION_STATUS_OK:
                 // Out of input with nothing left to emit means the stream is truncated.
                 if remaining == 0, stream.pointee.src_size == 0, idleRounds > 2 {
-                    throw Failure.corrupt("unexpected end of \(entry.name)")
+                    throw Failure.corrupt(L10n.format("unexpected end of %@", entry.name))
                 }
             default:
-                throw Failure.corrupt("could not inflate \(entry.name)")
+                throw Failure.corrupt(L10n.format("could not inflate %@", entry.name))
             }
         }
     }

@@ -122,7 +122,9 @@ final class StorageJanitor: ObservableObject {
                 if total > 0 || manual {
                     let amount = ByteCountFormatter.string(fromByteCount: max(total, 0), countStyle: .file)
                     let date = Date().formatted(date: .abbreviated, time: .shortened)
-                    janitor.lastReport = total > 0 ? "Freed \(amount) on \(date)." : "Nothing to clean up on \(date)."
+                    janitor.lastReport = total > 0
+                        ? L10n.format("Freed %@ on %@.", amount, date)
+                        : L10n.format("Nothing to clean up on %@.", date)
                     UserDefaults.standard.set(janitor.lastReport, forKey: "lastCleanupReport")
                 }
                 janitor.refreshUsage()

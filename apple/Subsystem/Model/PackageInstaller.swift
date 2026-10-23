@@ -15,26 +15,28 @@ enum PackageInstaller {
         case android(String)
         var errorDescription: String? {
             switch self {
-            case .unsupported(let ext): return "\(ext.isEmpty ? "This file" : ".\(ext) files") can't be installed. Use .apk, .apks, .apkm or .xapk."
-            case .noAPKs: return "There are no APK files in this archive."
+            case .unsupported(let ext):
+                let name = ext.isEmpty ? L10n.text("This file") : L10n.format(".%@ files", ext)
+                return L10n.format("%@ can't be installed. Use .apk, .apks, .apkm or .xapk.", name)
+            case .noAPKs: return L10n.text("There are no APK files in this archive.")
             case .android(let output): return Self.explain(output)
             }
         }
 
         private static func explain(_ output: String) -> String {
             if output.contains("INSTALL_FAILED_NO_MATCHING_ABIS") {
-                return "This app is built only for Intel/x86 Android devices and can't run on an Apple silicon Mac."
+                return L10n.text("This app is built only for Intel/x86 Android devices and can't run on an Apple silicon Mac.")
             }
             if output.contains("INSTALL_FAILED_OLDER_SDK") {
-                return "This app needs a newer version of Android."
+                return L10n.text("This app needs a newer version of Android.")
             }
             if output.contains("INSTALL_FAILED_UPDATE_INCOMPATIBLE") {
-                return "A different build of this app is already installed. Uninstall it first."
+                return L10n.text("A different build of this app is already installed. Uninstall it first.")
             }
             if output.contains("INSTALL_FAILED_INSUFFICIENT_STORAGE") {
-                return "Android is out of storage space."
+                return L10n.text("Android is out of storage space.")
             }
-            return "Android couldn't install the app:\n\(output)"
+            return L10n.format("Android couldn't install the app:\n%@", output)
         }
     }
 

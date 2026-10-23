@@ -25,9 +25,9 @@ final class ADBKey: @unchecked Sendable {
         case publicKey
         var errorDescription: String? {
             switch self {
-            case .generate(let detail): return "Couldn't create the ADB key: \(detail)"
-            case .sign(let detail): return "Couldn't sign the ADB token: \(detail)"
-            case .publicKey: return "Couldn't read the ADB public key."
+            case .generate(let detail): return L10n.format("Couldn't create the ADB key: %@", detail)
+            case .sign(let detail): return L10n.format("Couldn't sign the ADB token: %@", detail)
+            case .publicKey: return L10n.text("Couldn't read the ADB public key.")
             }
         }
     }
@@ -52,10 +52,10 @@ final class ADBKey: @unchecked Sendable {
             ]
             var error: Unmanaged<CFError>?
             guard let key = SecKeyCreateRandomKey(attributes as CFDictionary, &error) else {
-                throw Failure.generate(error?.takeRetainedValue().localizedDescription ?? "unknown error")
+                throw Failure.generate(error?.takeRetainedValue().localizedDescription ?? L10n.text("unknown error"))
             }
             guard let exported = SecKeyCopyExternalRepresentation(key, &error) as Data? else {
-                throw Failure.generate(error?.takeRetainedValue().localizedDescription ?? "export failed")
+                throw Failure.generate(error?.takeRetainedValue().localizedDescription ?? L10n.text("export failed"))
             }
             FileManager.default.createFile(atPath: file.path, contents: exported, attributes: [.posixPermissions: 0o600])
             privateKey = key
@@ -72,7 +72,7 @@ final class ADBKey: @unchecked Sendable {
     func sign(token: Data) throws -> Data {
         var error: Unmanaged<CFError>?
         guard let signature = SecKeyCreateSignature(privateKey, .rsaSignatureDigestPKCS1v15SHA1, token as CFData, &error) as Data? else {
-            throw Failure.sign(error?.takeRetainedValue().localizedDescription ?? "unknown error")
+            throw Failure.sign(error?.takeRetainedValue().localizedDescription ?? L10n.text("unknown error"))
         }
         return signature
     }

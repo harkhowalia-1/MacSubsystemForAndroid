@@ -35,7 +35,7 @@ enum GrubEnvironment {
         case qemuImg(String)
         var errorDescription: String? {
             switch self {
-            case .qemuImg(let output): return "Couldn't change Android's boot settings: \(output)"
+            case .qemuImg(let output): return L10n.format("Couldn't change Android's boot settings: %@", output)
             }
         }
     }

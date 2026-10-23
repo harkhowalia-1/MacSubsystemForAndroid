@@ -5,6 +5,7 @@
 //
 // Licensed under the GNU General Public License v3 or later.
 
+import Foundation
 import SwiftUI
 
 // MARK: - Sections
@@ -46,28 +47,36 @@ extension SettingsSection {
 
     var subtitle: String {
         switch self {
-        case .system: return "Start Android, keep it ready in the background, and choose what happens when the last app closes."
-        case .performance: return "How much of your Mac Android may use, and game controllers."
-        case .apps: return "Your Android apps, installing apps and app stores."
-        case .privacy: return "Which Android apps may use the camera, microphone, location and more."
-        case .files: return "Share files between your Mac and Android."
-        case .storage: return "Space Android uses on your Mac, and automatic clean-up."
-        case .advanced: return "Developer mode, ADB, the Android image, logs and reset."
-        case .about: return "Version, licences and acknowledgements."
+        case .system: return L10n.text("Start Android, keep it ready in the background, and choose what happens when the last app closes.")
+        case .performance: return L10n.text("How much of your Mac Android may use, and game controllers.")
+        case .apps: return L10n.text("Your Android apps, installing apps and app stores.")
+        case .privacy: return L10n.text("Which Android apps may use the camera, microphone, location and more.")
+        case .files: return L10n.text("Share files between your Mac and Android.")
+        case .storage: return L10n.text("Space Android uses on your Mac, and automatic clean-up.")
+        case .advanced: return L10n.text("Developer mode, ADB, the Android image, logs and reset.")
+        case .about: return L10n.text("Version, licences and acknowledgements.")
         }
     }
 
     /// Extra words the sidebar search matches.
     var keywords: [String] {
         switch self {
-        case .system: return ["start", "stop", "always ready", "login", "resources", "notifications", "microphone", "status"]
-        case .performance: return ["mode", "power saver", "smart", "standard", "gaming", "battery", "cpu", "cores", "memory", "ram", "controller", "gamepad"]
-        case .apps: return ["install", "apk", "f-droid", "launcher", "uninstall", "keyboard", "density"]
-        case .privacy: return ["permissions", "camera", "microphone", "location", "contacts"]
-        case .files: return ["share", "transfer", "downloads", "folder"]
-        case .storage: return ["disk", "space", "clean", "cache", "compact"]
-        case .advanced: return ["developer", "adb", "image", "log", "reset", "screen", "debug"]
-        case .about: return ["version", "license", "website", "github"]
+        case .system: return ["start", "stop", "always ready", "login", "resources", "notifications", "microphone", "status",
+                              "启动", "停止", "后台", "登录", "资源", "通知", "麦克风", "状态"]
+        case .performance: return ["mode", "power saver", "smart", "standard", "gaming", "battery", "cpu", "cores", "memory", "ram", "controller", "gamepad",
+                                   "模式", "省电", "智能", "标准", "性能", "电池", "核心", "内存", "控制器", "手柄"]
+        case .apps: return ["install", "apk", "f-droid", "launcher", "uninstall", "keyboard", "density",
+                            "安装", "启动器", "卸载", "键盘", "大小"]
+        case .privacy: return ["permissions", "camera", "microphone", "location", "contacts",
+                               "权限", "摄像头", "相机", "麦克风", "位置", "位置信息", "定位", "通讯录", "联系人"]
+        case .files: return ["share", "transfer", "downloads", "folder",
+                             "共享", "传输", "下载", "文件夹"]
+        case .storage: return ["disk", "space", "clean", "cache", "compact",
+                               "磁盘", "空间", "储存", "存储", "清理", "缓存", "压缩"]
+        case .advanced: return ["developer", "adb", "image", "log", "reset", "screen", "debug",
+                                "开发者", "镜像", "日志", "重置", "屏幕", "调试"]
+        case .about: return ["version", "license", "website", "github",
+                             "版本", "许可", "网站"]
         }
     }
 
@@ -209,15 +218,12 @@ struct DeviceCard: View {
     private var status: String {
         switch subsystem.state {
         case .running:
-            if let level = subsystem.performanceLevel, settings.performanceMode == .smart {
-                return "Running · \(level.title)"
-            }
-            return "Running · \(settings.performanceMode.title)"
-        case .starting: return "Starting…"
-        case .stopping: return "Turning off…"
-        case .failed: return "Stopped with an error"
-        case .off: return "Off"
-        case .notInstalled: return "Not set up"
+            return L10n.format("Running · %@", settings.performanceMode.title)
+        case .starting: return L10n.text("Starting…")
+        case .stopping: return L10n.text("Turning off…")
+        case .failed: return L10n.text("Stopped with an error")
+        case .off: return L10n.text("Off")
+        case .notInstalled: return L10n.text("Not set up")
         }
     }
 
@@ -264,7 +270,7 @@ struct RestartBanner: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Restart Android to apply your changes")
                         .font(.headline)
-                    Text("Changes to \(Self.list(changes)) take effect when Android restarts. Open Android apps close while it restarts.")
+                    Text(L10n.format("Changes to %@ take effect when Android restarts. Open Android apps close while it restarts.", Self.list(changes)))
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -285,10 +291,7 @@ struct RestartBanner: View {
     }
 
     static func list(_ items: [String]) -> String {
-        switch items.count {
-        case 0: return ""
-        case 1: return items[0]
-        default: return items.dropLast().joined(separator: ", ") + " and " + items.last!
-        }
+        guard !items.isEmpty else { return "" }
+        return ListFormatter.localizedString(byJoining: items)
     }
 }

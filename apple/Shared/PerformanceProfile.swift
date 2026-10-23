@@ -46,10 +46,10 @@ enum PerformanceMode: String, Codable, CaseIterable, Identifiable, Sendable {
 
     var title: String {
         switch self {
-        case .powerSaver: return "Power Saver"
-        case .smart: return "Smart"
-        case .standard: return "Standard"
-        case .performance: return "Performance"
+        case .powerSaver: return L10n.text("Power Saver")
+        case .smart: return L10n.text("Smart")
+        case .standard: return L10n.text("Standard")
+        case .performance: return L10n.text("Performance")
         }
     }
 
@@ -65,13 +65,13 @@ enum PerformanceMode: String, Codable, CaseIterable, Identifiable, Sendable {
     var summary: String {
         switch self {
         case .powerSaver:
-            return "Android only runs while an Android app is open, and adapts while it does: frugal by default, a little faster for the app in front when your Mac has power to spare."
+            return L10n.text("Android only runs while an Android app is open, and adapts while it does: frugal by default, a little faster for the app in front when your Mac has power to spare.")
         case .smart:
-            return "Stays ready so apps open instantly, and adapts all the time: full speed for the app you're using, and power saving as soon as other apps need your Mac or the battery runs low."
+            return L10n.text("Stays ready so apps open instantly, and adapts all the time: full speed for the app you're using, and power saving as soon as other apps need your Mac or the battery runs low.")
         case .standard:
-            return "Android runs as it is, with nothing tuned: every processor core, all of its memory and its own power settings. Stays ready in the background."
+            return L10n.text("Android runs as it is, with nothing tuned: every processor core, all of its memory and its own power settings. Stays ready in the background.")
         case .performance:
-            return "Maximum performance, all the time: every core and all of Android's memory, its game optimizations, up to 120 fps and lower input latency."
+            return L10n.text("Maximum performance, all the time: every core and all of Android's memory, its game optimizations, up to 120 fps and lower input latency.")
         }
     }
 }
@@ -85,10 +85,10 @@ enum PerformanceLevel: String, Codable, Sendable {
 
     var title: String {
         switch self {
-        case .saver: return "Saving power"
-        case .balanced: return "Balanced"
-        case .standard: return "Standard"
-        case .performance: return "Performance"
+        case .saver: return L10n.text("Saving power")
+        case .balanced: return L10n.text("Balanced")
+        case .standard: return L10n.text("Standard")
+        case .performance: return L10n.text("Performance")
         }
     }
 

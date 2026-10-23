@@ -24,7 +24,7 @@ extension ADBConnection {
         try stream.write(Self.syncRequest("STAT", Data(path.utf8)))
         let reply = try stream.readExactly(16, timeout: 15)
         guard String(decoding: reply.prefix(4), as: UTF8.self) == "STAT" else {
-            throw ADBError.protocolError("STAT reply")
+            throw ADBError.protocolError(L10n.text("STAT reply"))
         }
         try? stream.write(Self.syncRequest("QUIT", Data()))
         return RemoteFile(mode: reply.le32(4), size: reply.le32(8), modified: reply.le32(12))
@@ -72,10 +72,10 @@ extension ADBConnection {
         let id = String(decoding: reply.prefix(4), as: UTF8.self)
         if id == "FAIL" {
             let length = Int(reply.le32(4))
-            let message = (try? stream.readExactly(length, timeout: 5)).map { String(decoding: $0, as: UTF8.self) } ?? "push failed"
+            let message = (try? stream.readExactly(length, timeout: 5)).map { String(decoding: $0, as: UTF8.self) } ?? L10n.text("push failed")
             throw ADBError.command(message)
         }
-        guard id == "OKAY" else { throw ADBError.protocolError("SEND reply \(id)") }
+        guard id == "OKAY" else { throw ADBError.protocolError(L10n.format("SEND reply %@", id)) }
         try? stream.write(Self.syncHeader("QUIT", 0))
     }
 
