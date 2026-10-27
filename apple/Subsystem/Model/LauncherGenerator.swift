@@ -97,7 +97,7 @@ enum LauncherGenerator {
         ]
         // The window host reads the Subsystem's settings from its own Info.plist.
         for key in ["MSADisplayName", "MSAShortName", "MSALegacySupportFolders", "MSASubsystemBundleID", "MSAURLScheme", "MSASupportFolder",
-                    "MSALauncherFolder", "MSAScrcpyVersion", "MSAADBPort", "MSARepository", "MSAWebsiteURL"] {
+                    "MSALauncherFolder", "MSAScrcpyVersion", "MSAADBPort", "MSARepository", "MSAWebsiteURL", "MSABridgePackage"] {
             if let value = Bundle.main.object(forInfoDictionaryKey: key) { info[key] = value }
         }
         let plist = try PropertyListSerialization.data(fromPropertyList: info, format: .xml, options: 0)

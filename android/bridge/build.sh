@@ -27,8 +27,9 @@ WORK="${ROOT}/build/bridge"
 rm -rf "${WORK}"
 mkdir -p "${WORK}/classes" "${WORK}/dex" "$(dirname "${OUT}")"
 
+"${BUILD_TOOLS}/aapt2" compile --dir "${HERE}/res" -o "${WORK}/res.zip"
 "${BUILD_TOOLS}/aapt2" link -o "${WORK}/base.apk" -I "${PLATFORM}" \
-    --manifest "${HERE}/AndroidManifest.xml" \
+    --manifest "${HERE}/AndroidManifest.xml" "${WORK}/res.zip" \
     --min-sdk-version 30 --target-sdk-version 35 \
     --version-code "${VERSION}" --version-name "${VERSION}"
 

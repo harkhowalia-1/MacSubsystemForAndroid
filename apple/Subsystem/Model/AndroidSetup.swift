@@ -13,8 +13,7 @@
 import Foundation
 
 enum AndroidBridge {
-    static let package = Bundle.main.object(forInfoDictionaryKey: "MSABridgePackage") as? String
-        ?? "io.github.harkhowalia1.msa.bridge"
+    static var package: String { AppConfig.bridgePackage }
     static var authority: String { package }
     static var notificationListener: String { "\(package)/\(package).NotificationRelayService" }
     static var bundledAPK: URL? { Bundle.main.url(forResource: "bridge", withExtension: "apk") }

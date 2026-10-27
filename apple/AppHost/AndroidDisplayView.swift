@@ -4,7 +4,10 @@
 // Mouse: left button = finger touch (scrcpy maps the "mouse" pointer with only the
 // primary button to a touchscreen event), right button = mouse secondary click,
 // trackpad and wheel = scroll, hover = mouse hover.
-// Keyboard: text goes as text, everything else as keycodes (AndroidKeys).
+// Keyboard: the Mac's input methods (any layout, dead keys, Pinyin, Kana) give text
+// and composing text through NSTextInputClient; it goes to the bridge's keyboard
+// while an editor has input (MacKeyboard), as scrcpy text otherwise. Everything
+// else goes as keycodes (AndroidKeys).
 //
 // Licensed under the GNU General Public License v3 or later.
 
@@ -13,6 +16,8 @@ import AVFoundation
 
 final class AndroidDisplayView: NSView {
     weak var session: ScrcpySession?
+    /// The bridge's keyboard, when Android uses it.
+    var keyboard: MacKeyboard?
     /// Size of the Android frame in pixels; input coordinates are scaled to it.
     var frameSize = CGSize(width: 1, height: 1)
     /// Called when the view's pixel size settles after a resize.
@@ -21,6 +26,13 @@ final class AndroidDisplayView: NSView {
     let displayLayer = AVSampleBufferDisplayLayer()
     private var trackingArea: NSTrackingArea?
     private var buttons: UInt32 = 0
+    /// Keys whose down went to Android as keycodes, and whether through the keyboard.
+    private var keysDown: [UInt16: Bool] = [:]
+    /// The key interpretKeyEvents is working on, for doCommand(by:).
+    private var keyEvent: NSEvent?
+    private var markedText = ""
+    /// Where the last click landed (view coordinates): the input method's candidates go there.
+    private var lastClick: NSPoint?
     private var resizeWork: DispatchWorkItem?
 
     override init(frame: NSRect) {
@@ -113,6 +125,7 @@ final class AndroidDisplayView: NSView {
 
     override func mouseDown(with event: NSEvent) {
         window?.makeFirstResponder(self)
+        lastClick = convert(event.locationInWindow, from: nil)
         guard let (x, y) = androidPoint(event) else { return }
         buttons |= ScrcpySession.buttonPrimary
         session?.injectTouch(.down, x: x, y: y, actionButton: ScrcpySession.buttonPrimary, buttons: buttons)
@@ -159,19 +172,43 @@ final class AndroidDisplayView: NSView {
     // MARK: Keyboard
 
     override func keyDown(with event: NSEvent) {
-        if let text = AndroidKeys.text(for: event) {
-            session?.injectText(text)
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        // Shortcuts, and arrows or function keys outside a composition, are keys, never text.
+        if flags.contains(.control) || flags.contains(.command) || (flags.contains(.function) && markedText.isEmpty) {
+            sendKey(event, .down)
             return
         }
-        guard let code = AndroidKeys.keycodes[Int(event.keyCode)] else { return }
-        session?.injectKey(.down, keycode: code, repeat: event.isARepeat ? 1 : 0,
-                           metaState: AndroidKeys.metaState(event.modifierFlags))
+        // Text and editing commands come back through NSTextInputClient below.
+        keyEvent = event
+        interpretKeyEvents([event])
+        keyEvent = nil
     }
 
     override func keyUp(with event: NSEvent) {
-        if AndroidKeys.text(for: event) != nil { return }
+        guard let throughKeyboard = keysDown.removeValue(forKey: event.keyCode) else { return }
+        sendKey(event, .up, throughKeyboard: throughKeyboard)
+    }
+
+    /// A key as an Android keycode: through the bridge's keyboard while an editor has input,
+    /// so it stays in order with the text, otherwise through scrcpy. A key goes up the way it went down.
+    private func sendKey(_ event: NSEvent, _ action: ScrcpySession.KeyAction, throughKeyboard: Bool? = nil) {
         guard let code = AndroidKeys.keycodes[Int(event.keyCode)] else { return }
-        session?.injectKey(.up, keycode: code, metaState: AndroidKeys.metaState(event.modifierFlags))
+        let meta = AndroidKeys.metaState(event.modifierFlags)
+        let count: Int32 = action == .down && event.isARepeat ? 1 : 0
+        let viaKeyboard = throughKeyboard ?? (keyboard?.isEditing == true)
+        if action == .down { keysDown[event.keyCode] = viaKeyboard }
+        if viaKeyboard, let keyboard {
+            keyboard.key(action, keycode: code, metaState: meta, repeat: count)
+        } else {
+            session?.injectKey(action, keycode: code, repeat: count, metaState: meta)
+        }
+    }
+
+    override func resignFirstResponder() -> Bool {
+        // Keep what is being composed, as typed.
+        inputContext?.discardMarkedText()
+        unmarkText()
+        return super.resignFirstResponder()
     }
 
     /// Control-key shortcuts reach keyDown; Command shortcuts are menu items (Edit menu).
@@ -183,4 +220,59 @@ final class AndroidDisplayView: NSView {
         }
         return super.performKeyEquivalent(with: event)
     }
+}
+
+// MARK: Text input
+
+extension AndroidDisplayView: NSTextInputClient {
+    func insertText(_ string: Any, replacementRange: NSRange) {
+        let text = (string as? NSAttributedString)?.string ?? string as? String ?? ""
+        markedText = ""
+        guard !text.isEmpty else { return }
+        if let keyboard, keyboard.isEditing {
+            keyboard.commit(text)  // replaces the composing text
+        } else {
+            session?.injectText(text)
+        }
+    }
+
+    /// Return, Delete, Tab, Escape and the like: the key itself.
+    override func doCommand(by selector: Selector) {
+        if let keyEvent { sendKey(keyEvent, .down) }
+    }
+
+    func setMarkedText(_ string: Any, selectedRange: NSRange, replacementRange: NSRange) {
+        markedText = (string as? NSAttributedString)?.string ?? string as? String ?? ""
+        if let keyboard, keyboard.isEditing { keyboard.compose(markedText) }
+    }
+
+    func unmarkText() {
+        guard !markedText.isEmpty else { return }
+        markedText = ""
+        if let keyboard, keyboard.isEditing { keyboard.finishComposing() }
+    }
+
+    func selectedRange() -> NSRange {
+        NSRange(location: (markedText as NSString).length, length: 0)
+    }
+
+    func markedRange() -> NSRange {
+        markedText.isEmpty ? NSRange(location: NSNotFound, length: 0)
+            : NSRange(location: 0, length: (markedText as NSString).length)
+    }
+
+    func hasMarkedText() -> Bool { !markedText.isEmpty }
+
+    func attributedSubstring(forProposedRange range: NSRange, actualRange: NSRangePointer?) -> NSAttributedString? { nil }
+
+    func validAttributesForMarkedText() -> [NSAttributedString.Key] { [] }
+
+    /// Android doesn't tell us where its caret is; the last click is usually next to it.
+    func firstRect(forCharacterRange range: NSRange, actualRange: NSRangePointer?) -> NSRect {
+        let point = lastClick ?? NSPoint(x: bounds.midX, y: bounds.midY)
+        let rect = NSRect(x: point.x, y: point.y - 10, width: 1, height: 20)
+        return window?.convertToScreen(convert(rect, to: nil)) ?? .zero
+    }
+
+    func characterIndex(for point: NSPoint) -> Int { NSNotFound }
 }

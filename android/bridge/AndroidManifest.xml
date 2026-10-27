@@ -10,6 +10,9 @@
     notifications.json   active notifications, from NotificationRelayService
   Only the shell user (which holds DUMP) can read it, not other Android apps.
 
+  MacInputMethod is Android's keyboard while it runs on the Mac: the Mac's
+  windows send it what is typed, in any script (see MacInputMethod.java).
+
   Licensed under the GNU General Public License v3 or later.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
@@ -36,6 +39,17 @@
             <intent-filter>
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
+        </service>
+
+        <service
+            android:name=".MacInputMethod"
+            android:label="Mac keyboard"
+            android:exported="true"
+            android:permission="android.permission.BIND_INPUT_METHOD">
+            <intent-filter>
+                <action android:name="android.view.InputMethod" />
+            </intent-filter>
+            <meta-data android:name="android.view.im" android:resource="@xml/method" />
         </service>
     </application>
 </manifest>

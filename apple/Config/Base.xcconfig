@@ -14,7 +14,7 @@ ADB_PORT = 58526
 // Must match build/payload/scrcpy-server.jar (core/scripts/fetch-scrcpy-server.sh).
 SCRCPY_VERSION = 5.0.1
 // Version code of android/bridge (android/bridge/build.sh reads it from here).
-MSA_BRIDGE_VERSION = 1
+MSA_BRIDGE_VERSION = 2
 MSA_BRIDGE_PACKAGE = io.github.harkhowalia1.msa.bridge
 REPOSITORY = harkhowalia-1/MacSubsystemForAndroid
 WEBSITE_URL = https:/$()/harkhowalia-1.github.io/MacSubsystemForAndroid

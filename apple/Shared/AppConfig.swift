@@ -30,6 +30,8 @@ enum AppConfig {
     static let websiteURL = URL(string: info("MSAWebsiteURL") ?? "https://github.com")!
     /// ADB port on 127.0.0.1 (forwarded by QEMU).
     static let adbPort: UInt16 = UInt16(info("MSAADBPort") ?? "") ?? 58526
+    /// Package of the bridge app inside Android.
+    static let bridgePackage: String = info("MSABridgePackage") ?? "io.github.harkhowalia1.msa.bridge"
     /// scrcpy server version bundled in Resources/scrcpy-server.jar. Client and server must match.
     static let scrcpyVersion: String = info("MSAScrcpyVersion") ?? "5.0.1"
     /// Bundle identifier prefix of generated launchers: <prefix>.<sanitized package>

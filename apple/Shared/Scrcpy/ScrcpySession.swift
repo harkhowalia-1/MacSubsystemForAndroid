@@ -30,6 +30,8 @@ final class ScrcpySession: @unchecked Sendable {
         var maxFPS: Int = 60
         var bitRate: Int = 12_000_000
         var showSoftKeyboard = false
+        /// The bridge's keyboard is Android's input method (MacKeyboard).
+        var macKeyboard = false
         var serverPath = "/data/local/tmp/msa-scrcpy-server.jar"
     }
 
@@ -62,6 +64,9 @@ final class ScrcpySession: @unchecked Sendable {
     private var serverLog = ""
 
     private(set) var frameSize: (width: Int, height: Int) = (0, 0)
+    var usesMacKeyboard: Bool { configuration.macKeyboard }
+    /// The virtual display's id, once the server has made it.
+    var displayID: Int? { virtualDisplayID() }
 
     init(connection: ADBConnection, configuration: Configuration) {
         self.connection = connection
@@ -89,7 +94,10 @@ final class ScrcpySession: @unchecked Sendable {
             "cleanup=true",
             "power_on=true",
         ]
-        arguments.append("display_ime_policy=\(configuration.showSoftKeyboard ? "local" : "hide")")
+        // The input method works on the window's display: Android's on-screen keyboard when
+        // asked for, or the bridge's keyboard, which shows nothing. Otherwise it stays away.
+        let imeOnDisplay = configuration.showSoftKeyboard || configuration.macKeyboard
+        arguments.append("display_ime_policy=\(imeOnDisplay ? "local" : "hide")")
         let command = "CLASSPATH=\(configuration.serverPath) app_process / com.genymobile.scrcpy.Server "
             + "\(AppConfig.scrcpyVersion) " + arguments.joined(separator: " ")
 

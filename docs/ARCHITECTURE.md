@@ -41,10 +41,12 @@
 
 ```
 new_display=<window pixels>/<dpi> flex_display=true vd_system_decorations=false
-display_ime_policy=hide video_codec=h264 audio=false tunnel_forward=true
+display_ime_policy=local video_codec=h264 audio=false tunnel_forward=true
 ```
 
-It then opens `localabstract:scrcpy_<scid>` twice through ADB (video, then control; no port forwarding), switches the new virtual display to fullscreen with `cmd window set-display-windowing-mode` (the image declares `android.hardware.type.pc`, so Android would otherwise open the app as a small freeform window) and sends `START_APP <package>`. Video packets become `CMSampleBuffer`s (`H264SampleBuilder`) for an `AVSampleBufferDisplayLayer`, which decodes in hardware. Mouse buttons become touches, the wheel becomes scroll events, printable keys become text and the rest become Android keycodes. Resizing the window sends `RESIZE_DISPLAY`, so the Android display (and the app's layout) follows the window. `dpi = 160 × backing scale × App size`, so one Android dp is one Mac point at the default size.
+(`display_ime_policy=hide` when neither the bridge's keyboard nor Android's on-screen keyboard is in use.)
+
+It then opens `localabstract:scrcpy_<scid>` twice through ADB (video, then control; no port forwarding), switches the new virtual display to fullscreen with `cmd window set-display-windowing-mode` (the image declares `android.hardware.type.pc`, so Android would otherwise open the app as a small freeform window) and sends `START_APP <package>`. Video packets become `CMSampleBuffer`s (`H264SampleBuilder`) for an `AVSampleBufferDisplayLayer`, which decodes in hardware. Mouse buttons become touches and the wheel becomes scroll events. Typing goes through AppKit's text input (`NSTextInputClient`), so every layout, dead key and input method (Pinyin, Kana) works: while an editor on the window's display has input, text, composing text and editing keys go to the bridge's keyboard (`MacKeyboard`, see below), otherwise text goes as scrcpy text and the rest as Android keycodes. Resizing the window sends `RESIZE_DISPLAY`, so the Android display (and the app's layout) follows the window. `dpi = 160 × backing scale × App size`, so one Android dp is one Mac point at the default size.
 
 Sound doesn't go through scrcpy: Android plays through the VM's `intel-hda` device, so all apps share one audio path.
 
@@ -95,6 +97,8 @@ Modes map to levels as follows. Standard → Standard and Performance → Perfor
 | `notifications.json` | active notifications from `NotificationRelayService` |
 
 The Mac reads them with `content read --uri content://io.github.harkhowalia1.msa.bridge/<path>`.
+
+`MacInputMethod` is Android's input method (each app window selects it with `ime set`, unless *Show Android's on-screen keyboard* is on). It shows nothing. scrcpy's text injection only carries characters Android's virtual key map has, so text in Persian, Russian or Chinese never arrived; the input method commits it with `commitText`, and shows a Mac input method's composing text underlined with `setComposingText`. Each window connects to its abstract socket `msa_ime` through ADB (only the shell user and root may), says which display it is, and hears when an editor on that display gains or loses input; while one has it, the window sends text, composing text and editing keys there, so they stay in order. The socket belongs to the bridge's process, since Android destroys and recreates the service, and windows reconnect when the process restarts.
 
 ## Files
 
