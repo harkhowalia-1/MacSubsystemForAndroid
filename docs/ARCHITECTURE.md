@@ -44,7 +44,7 @@ new_display=<window pixels>/<dpi> flex_display=true vd_system_decorations=false
 display_ime_policy=hide video_codec=h264 audio=false tunnel_forward=true
 ```
 
-It then opens `localabstract:scrcpy_<scid>` twice through ADB (video, then control; no port forwarding), switches the new virtual display to fullscreen with `cmd window set-display-windowing-mode` (the image declares `android.hardware.type.pc`, so Android would otherwise open the app as a small freeform window) and sends `START_APP <package>`. Video packets become `CMSampleBuffer`s (`H264SampleBuilder`) for an `AVSampleBufferDisplayLayer`, which decodes in hardware. Mouse buttons become touches, the wheel becomes scroll events, printable keys become text and the rest become Android keycodes. Resizing the window sends `RESIZE_DISPLAY`, so the Android display (and the app's layout) follows the window. `dpi = 160 × backing scale × App size`, so one Android dp is one Mac point at the default size.
+It then opens `localabstract:scrcpy_<scid>` twice through ADB (video, then control; no port forwarding), switches the new virtual display to fullscreen with `cmd window set-display-windowing-mode` (the image declares `android.hardware.type.pc`, so Android would otherwise open the app as a small freeform window) and sends `START_APP <package>`. Video packets become `CMSampleBuffer`s (`H264SampleBuilder`) for an `AVSampleBufferDisplayLayer`, which decodes in hardware. Mouse buttons become touches, the wheel becomes scroll events, a trackpad pinch or rotation becomes two fingers around the pointer (scrcpy's generic and virtual finger pointers, the ones its own pinch uses), printable keys become text and the rest become Android keycodes. Resizing the window sends `RESIZE_DISPLAY`, so the Android display (and the app's layout) follows the window. `dpi = 160 × backing scale × App size`, so one Android dp is one Mac point at the default size.
 
 Sound doesn't go through scrcpy: Android plays through the VM's `intel-hda` device, so all apps share one audio path.
 
@@ -109,7 +109,6 @@ The Mac reads them with `content read --uri content://io.github.harkhowalia1.msa
 ## Next steps
 
 - GPU acceleration: virtio-gpu-gl with virglrenderer and ANGLE (as UTM does) instead of software rendering.
-- Multi-touch (pinch, rotate) from the trackpad.
 - Camera, location and shared folders.
 - Close the Mac window when the Android app finishes its last activity.
 - Faster *As needed* starts with a saved VM snapshot.

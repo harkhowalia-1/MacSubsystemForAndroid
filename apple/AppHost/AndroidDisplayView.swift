@@ -3,7 +3,8 @@
 //
 // Mouse: left button = finger touch (scrcpy maps the "mouse" pointer with only the
 // primary button to a touchscreen event), right button = mouse secondary click,
-// trackpad and wheel = scroll, hover = mouse hover.
+// trackpad and wheel = scroll, hover = mouse hover, trackpad pinch and rotation =
+// two fingers around the pointer.
 // Keyboard: text goes as text, everything else as keycodes (AndroidKeys).
 //
 // Licensed under the GNU General Public License v3 or later.
@@ -21,6 +22,7 @@ final class AndroidDisplayView: NSView {
     let displayLayer = AVSampleBufferDisplayLayer()
     private var trackingArea: NSTrackingArea?
     private var buttons: UInt32 = 0
+    private var fingers: TwoFingers?
     private var resizeWork: DispatchWorkItem?
 
     override init(frame: NSRect) {
@@ -101,7 +103,11 @@ final class AndroidDisplayView: NSView {
 
     /// Map a point in the view to Android pixels, honouring the aspect-fit letterbox.
     private func androidPoint(_ event: NSEvent) -> (Int, Int)? {
-        let point = convert(event.locationInWindow, from: nil)
+        androidPoint(inWindow: event.locationInWindow)
+    }
+
+    private func androidPoint(inWindow location: NSPoint) -> (Int, Int)? {
+        let point = convert(location, from: nil)
         let video = AVMakeRect(aspectRatio: frameSize, insideRect: bounds)
         guard video.width > 0, video.height > 0 else { return nil }
         let x = (point.x - video.minX) / video.width * frameSize.width
@@ -142,18 +148,97 @@ final class AndroidDisplayView: NSView {
     }
 
     override func mouseMoved(with event: NSEvent) {
-        guard buttons == 0, let (x, y) = androidPoint(event) else { return }
+        guard buttons == 0, fingers == nil, let (x, y) = androidPoint(event) else { return }
         session?.injectTouch(.hoverMove, x: x, y: y, pressure: 0)
     }
 
     override func scrollWheel(with event: NSEvent) {
-        guard let (x, y) = androidPoint(event) else { return }
+        guard fingers == nil, let (x, y) = androidPoint(event) else { return }
         // Trackpads report precise point deltas; wheels report lines.
         let divisor: CGFloat = event.hasPreciseScrollingDeltas ? 30 : 1
         let h = Float(event.scrollingDeltaX / divisor)
         let v = Float(event.scrollingDeltaY / divisor)
         guard h != 0 || v != 0 else { return }
         session?.injectScroll(x: x, y: y, hScroll: h, vScroll: v)
+    }
+
+    // MARK: Trackpad gestures
+
+    /// A pinch or rotation on the trackpad, as two fingers on either side of the
+    /// point where it started. macOS sends magnify and rotate as separate events,
+    /// often interleaved in one gesture, so the fingers stay down until both end.
+    private struct TwoFingers {
+        enum Gesture { case magnify, rotate }
+        /// Android pixels: about a fingertip apart.
+        static let closest: CGFloat = 48
+
+        var center: CGPoint  // Android pixels
+        var span: CGFloat    // distance between the fingers, Android pixels
+        var angle: CGFloat = 0  // radians, clockwise on the screen
+        var active: Set<Gesture> = []
+
+        /// Both fingers' positions, kept inside the frame.
+        func points(in size: CGSize) -> [(x: Int, y: Int)] {
+            let dx = cos(angle) * span / 2, dy = sin(angle) * span / 2
+            return [CGPoint(x: center.x - dx, y: center.y - dy), CGPoint(x: center.x + dx, y: center.y + dy)].map {
+                (Int(max(0, min(size.width - 1, $0.x))), Int(max(0, min(size.height - 1, $0.y))))
+            }
+        }
+    }
+
+    override func magnify(with event: NSEvent) {
+        let factor = 1 + event.magnification
+        twoFingerGesture(.magnify, phase: event.phase, location: event.locationInWindow) { fingers in
+            // Never closer than a fingertip, never wider than the display.
+            let diagonal = hypot(frameSize.width, frameSize.height)
+            fingers.span = max(TwoFingers.closest, min(diagonal, fingers.span * factor))
+        }
+    }
+
+    override func rotate(with event: NSEvent) {
+        // Degrees, counterclockwise; Android's y axis points down.
+        let radians = -CGFloat(event.rotation) * .pi / 180
+        twoFingerGesture(.rotate, phase: event.phase, location: event.locationInWindow) { fingers in
+            fingers.angle += radians
+        }
+    }
+
+    private func twoFingerGesture(_ gesture: TwoFingers.Gesture, phase: NSEvent.Phase, location: NSPoint,
+                                  update: (inout TwoFingers) -> Void) {
+        if phase.contains(.began) {
+            if fingers == nil {
+                // A click in progress keeps the mouse pointer; it can't also be a finger.
+                guard buttons == 0, let (x, y) = androidPoint(inWindow: location) else { return }
+                // About a thumb and finger apart on a phone.
+                let span = min(frameSize.width, frameSize.height) / 4
+                fingers = TwoFingers(center: CGPoint(x: x, y: y), span: max(TwoFingers.closest, span))
+                sendFingers(.down)
+            }
+            fingers?.active.insert(gesture)
+        }
+        guard fingers?.active.contains(gesture) == true else { return }
+        if phase.contains(.changed) {
+            update(&fingers!)
+            sendFingers(.move)
+        }
+        if phase.contains(.ended) || phase.contains(.cancelled) {
+            fingers?.active.remove(gesture)
+            if fingers?.active.isEmpty == true {
+                sendFingers(.up)
+                fingers = nil
+            }
+        }
+    }
+
+    /// Down in order, up in reverse, so Android sees one finger and then two.
+    private func sendFingers(_ action: ScrcpySession.TouchAction) {
+        guard let fingers else { return }
+        let points = fingers.points(in: frameSize)
+        var touches = [(ScrcpySession.pointerFinger, points[0]), (ScrcpySession.pointerVirtualFinger, points[1])]
+        if action == .up { touches.reverse() }
+        for (pointer, point) in touches {
+            session?.injectTouch(action, x: point.x, y: point.y, pointer: pointer)
+        }
     }
 
     // MARK: Keyboard
