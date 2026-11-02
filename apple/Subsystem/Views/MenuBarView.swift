@@ -1,5 +1,5 @@
 // Mac Android Subsystem - the menu bar item: status, start/stop, performance mode,
-// Always ready, open apps, settings and quit.
+// Always ready, open apps, settings, uninstall and quit.
 // Licensed under the GNU General Public License v3 or later.
 
 import SwiftUI
@@ -69,6 +69,7 @@ struct MenuBarView: View {
         Divider()
         Button("Settings…") { SettingsWindowController.shared.show() }
             .keyboardShortcut(",")
+        Button("Uninstall \(AppConfig.displayName)…") { Uninstaller.confirmAndUninstall() }
         Button("Quit \(AppConfig.displayName)") { NSApp.terminate(nil) }
             .keyboardShortcut("q")
     }

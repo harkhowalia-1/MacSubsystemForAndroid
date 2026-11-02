@@ -648,6 +648,10 @@ struct AdvancedSettingsView: View {
                 Text("Removes every Android app and all their data, like a factory reset.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
+                Button("Uninstall \(AppConfig.displayName)…", role: .destructive) { Uninstaller.confirmAndUninstall() }
+                Text("Deletes Android, every Android app and its data, the app shortcuts in \(AppConfig.launcherFolderName) and this app's settings, then moves \(AppConfig.displayName) to the Trash.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)

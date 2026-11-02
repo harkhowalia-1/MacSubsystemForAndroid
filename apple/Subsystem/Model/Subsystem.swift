@@ -174,6 +174,7 @@ final class Subsystem: ObservableObject {
     // MARK: Start
 
     func start() {
+        guard !Uninstaller.isRunning else { return }
         switch state {
         case .off, .failed: break
         case .notInstalled:

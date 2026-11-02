@@ -106,6 +106,10 @@ The Mac reads them with `content read --uri content://io.github.harkhowalia1.msa
 ~/Applications/Android Apps/<App>.app
 ```
 
+## Uninstalling
+
+`Uninstaller` (menu bar item and Settings › Advanced) asks once, with a warning that Android and every app's data will be deleted, then: quits running launchers (bundle IDs under `AppConfig.launcherBundlePrefix`), calls `Subsystem.stop()` and waits for QEMU to exit (and for any disk compaction), unregisters the `SMAppService.mainApp` login item, runs `lsregister -u` on each launcher from `LauncherGenerator.existing()` before deleting it (`LSRegisterURL` can only add a registration), deletes `SubsystemPaths.support`, the `LEGACY_SUPPORT_FOLDERS`, the app's caches and `HTTPStorages` folders and `SubsystemPaths.runtime`, removes the preference domains of the app and every launcher, moves the app to the Trash and quits. `Subsystem.start()` does nothing while it runs, so a late `msa://start` can't boot Android again. Anything it can't delete is listed, with *Show in Finder*.
+
 ## Next steps
 
 - GPU acceleration: virtio-gpu-gl with virglrenderer and ANGLE (as UTM does) instead of software rendering.

@@ -77,6 +77,12 @@ The menu bar item and the Settings window hold the rest: Always Ready, what happ
 
 A Mac with Apple silicon and macOS 15 or later. Android uses a quarter of your memory by default (up to 6 GB) and about 8 GB of disk.
 
+## Uninstalling
+
+Choose **Uninstall Mac Android Subsystem…** from the menu bar item, or in Settings › Advanced. After you confirm, it turns Android off, quits any open Android apps, removes the login item, deletes every Android app from `~/Applications/Android Apps` (and from Launchpad and Spotlight), deletes Android and all its data from `~/Library/Application Support/Mac Android Subsystem`, removes its settings, then moves itself to the Trash. Photos and files saved inside Android are deleted too, so copy anything you want to keep to your Mac first.
+
+Dragging the app to the Trash on its own leaves all of that behind.
+
 ## FAQ
 
 **Can I run Android apps on a Mac?** Yes. On any Mac with Apple silicon and macOS 15 or later, Mac Android Subsystem runs real Android (LineageOS) and shows each app in its own Mac window.
