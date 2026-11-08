@@ -257,6 +257,9 @@ final class ScrcpySession: @unchecked Sendable {
     enum KeyAction: UInt8 { case down = 0, up = 1 }
 
     static let pointerMouse: UInt64 = 0xFFFF_FFFF_FFFF_FFFF  // -1
+    /// scrcpy's own pinch uses these two: always touchscreen fingers, never a mouse.
+    static let pointerFinger: UInt64 = 0xFFFF_FFFF_FFFF_FFFE  // -2
+    static let pointerVirtualFinger: UInt64 = 0xFFFF_FFFF_FFFF_FFFD  // -3
     static let buttonPrimary: UInt32 = 1
     static let buttonSecondary: UInt32 = 2
 
