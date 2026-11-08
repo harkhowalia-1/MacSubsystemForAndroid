@@ -20,6 +20,7 @@ final class AndroidWindowController: NSWindowController, NSWindowDelegate {
     private let overlay = SplashOverlay()
     private var connection: ADBConnection?
     private var session: ScrcpySession?
+    private var keyboard: MacKeyboard?
     private let builder = H264SampleBuilder()
     private var lastSentSize = (0, 0)
     private var isClosing = false
@@ -114,6 +115,7 @@ final class AndroidWindowController: NSWindowController, NSWindowDelegate {
                                                         height: max(height, 320), dpi: dpi)
         configuration.showSoftKeyboard = UserDefaults(suiteName: AppConfig.subsystemBundleID)?
             .bool(forKey: "showSoftKeyboard") ?? false
+        configuration.macKeyboard = MacKeyboard.select(connection, onScreenKeyboard: configuration.showSoftKeyboard)
         // The performance level sets how smooth (and how costly) the stream is.
         configuration.maxFPS = min(level.maxFPS, max(screenFPS, 30))
         configuration.bitRate = level.videoBitRate
@@ -173,8 +175,13 @@ final class AndroidWindowController: NSWindowController, NSWindowDelegate {
         Task.detached(priority: .userInitiated) { [weak self] in
             do {
                 try session.start()
+                // Without it typing still works, as scrcpy text (characters Android's key map has).
+                let keyboard = session.usesMacKeyboard
+                    ? session.displayID.map { MacKeyboard(connection: connection, display: $0) } : nil
                 await MainActor.run { [weak self] in
-                    guard let self else { return }
+                    guard let self else { keyboard?.close(); return }
+                    self.keyboard = keyboard
+                    self.displayView.keyboard = keyboard
                     self.lastSentSize = self.displayView.pixelSize
                     self.window?.makeFirstResponder(self.displayView)
                     self.gamepads.session = session
@@ -191,6 +198,9 @@ final class AndroidWindowController: NSWindowController, NSWindowDelegate {
         guard !isClosing else { return }
         orientationWatch?.cancel()
         gamepads.session = nil
+        displayView.keyboard = nil
+        keyboard?.close()
+        keyboard = nil
         session = nil
         connection?.close()
         connection = nil
@@ -225,6 +235,7 @@ final class AndroidWindowController: NSWindowController, NSWindowDelegate {
         gamepads.deactivate()
         isClosing = true
         orientationWatch?.cancel()
+        keyboard?.close()
         session?.stop()
         connection?.close()
         NSApp.terminate(nil)

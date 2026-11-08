@@ -1,7 +1,7 @@
 // Mac Android Subsystem - Mac keyboard to Android key events.
 //
-// Printable characters are sent as text (scrcpy's INJECT_TEXT), so every Mac
-// keyboard layout and dead key works. Everything else (arrows, Return, Delete,
+// Text comes from AppKit's text input (AndroidDisplayView), so every Mac keyboard
+// layout, dead key and input method works. Everything else (arrows, Return, Delete,
 // shortcuts with Control) is sent as an Android keycode with its meta state.
 //
 // Licensed under the GNU General Public License v3 or later.
@@ -64,17 +64,5 @@ enum AndroidKeys {
         if flags.contains(.control) { meta |= metaCtrl }
         if flags.contains(.capsLock) { meta |= metaCapsLock }
         return meta
-    }
-
-    /// Text to type for a key press, or nil when it should go as a keycode.
-    static func text(for event: NSEvent) -> String? {
-        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-        if flags.contains(.control) || flags.contains(.command) || flags.contains(.function) { return nil }
-        guard let characters = event.characters, !characters.isEmpty else { return nil }
-        // Control characters (Return, Tab, Delete, arrows in the private-use range) go as keycodes.
-        let printable = characters.unicodeScalars.allSatisfy { scalar in
-            !CharacterSet.controlCharacters.contains(scalar) && !(0xF700...0xF8FF).contains(scalar.value)
-        }
-        return printable ? characters : nil
     }
 }
