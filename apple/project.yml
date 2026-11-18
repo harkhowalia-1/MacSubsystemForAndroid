@@ -115,6 +115,8 @@ targets:
     entitlements:
       path: Subsystem/Subsystem.entitlements
       properties:
+        # macOS attributes QEMU's microphone requests to the Subsystem app.
+        com.apple.security.device.audio-input: true
         # QEMU's libraries are signed separately from the app.
         com.apple.security.cs.disable-library-validation: true
     postBuildScripts:
